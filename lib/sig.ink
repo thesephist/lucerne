@@ -44,6 +44,7 @@ percentEncodeChar := c => (
 		false -> '%' + upper(hex(p))
 	}
 )
+`` TODO: replace this with the better maintained percent.ink encoder from Polyx
 percentEncode := piece => cat(map(piece, percentEncodeChar), '')
 
 ` converting from hex (from HMAC) to base64 `

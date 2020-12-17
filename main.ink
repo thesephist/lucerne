@@ -61,6 +61,7 @@ retrieve := () => (
 `` send('Tweet sent with Ink, ' + string(floor(time())))
 `` retrieve()
 
+`` TEST rendering from a saved/cached timeline file on disk
 `` readFile := std.readFile
 `` readFile('./home_timeline.json', file => file :: {
 `` 	() -> log('error reading file')
