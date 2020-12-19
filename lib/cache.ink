@@ -2,7 +2,10 @@
 
 std := load('../vendor/std')
 
-CacheDelay := 15 `` seconds
+log := std.log
+f := std.format
+
+CacheDelay := 60 `` seconds
 
 new := () => (
 	store := {}
@@ -20,6 +23,7 @@ new := () => (
 	get := (key, fetch, cb) => time() - getTimestamp(key) < CacheDelay :: {
 		true -> cb(store.(key).record)
 		_ -> fetch(resp => (
+			log(f('Cache invalidated, fetched {{0}}', [key]))
 			store.(key) := {
 				timestamp: time()
 				record: resp

@@ -7,7 +7,6 @@ json := load('vendor/json')
 log := std.log
 f := std.format
 deJSON := json.de
-
 readFile := std.readFile
 
 http := load('vendor/http')
@@ -18,6 +17,9 @@ mimeForPath := mime.forPath
 pctDecode := percent.decode
 
 twitter := load('lib/twitter')
+
+retrieve := twitter.retrieve
+search := twitter.search
 
 server := (http.new)()
 MethodNotAllowed := {status: 405, body: 'method not allowed'}
@@ -35,9 +37,9 @@ serveStatic := path => (req, end) => req.method :: {
 }
 
 addRoute := server.addRoute
-addRoute('/timeline', params => (req, end) => req.method :: {
-	'GET' -> retrieve(data => end({
-		status: 200
+addGetAPI := (url, provider) => addRoute(url, params => (req, end) => req.method :: {
+	'GET' -> provider(params, data => end({
+		status: data :: {() -> 500, _ -> 200}
 		headers: {'Content-Type': 'application/json'}
 		body: data :: {
 			() -> '{"error": "failed to fetch"}'
@@ -46,19 +48,12 @@ addRoute('/timeline', params => (req, end) => req.method :: {
 	}))
 	_ -> end(MethodNotAllowed)
 })
+addGetAPI('/timeline', (_, cb) => retrieve(cb))
+addGetAPI('/search', (params, cb) => search(params.query, cb))
+
 addRoute('/static/*staticPath', params => serveStatic(params.staticPath))
 addRoute('/', params => serveStatic('index.html'))
 
 end := (server.start)(7238)
 log(f('Lucerne started, listening on 0.0.0.0:{{0}}', [7283]))
 
-`` TEST
-`` send('Tweet sent with Ink, ' + string(floor(time())))
-`` retrieve()
-retrieve := cb => (
-	readFile := std.readFile
-	readFile('./home_timeline.json', file => file :: {
-		() -> cb(())
-		_ -> cb(file)
-	})
-)
