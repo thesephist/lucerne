@@ -137,6 +137,10 @@ a.queryBar-logo {
     margin-left: .5em;
 }
 
+.tweetItem .tweetBody {
+	white-space: pre-line
+}
+
 .tweetMedia {
     display: flex;
     flex-direction: row;

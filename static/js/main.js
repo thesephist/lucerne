@@ -111,9 +111,24 @@ class Tweet extends Record {
         const media = entities.media;
         if (!media) return [];
 
-        return media.map(m => jdom`<img load="lazy"
-            class="bordered tweetImg"
-            src="${m.media_url_https}" />`);
+        return media.map(m => {
+            switch (m.type) {
+                case 'photo': {
+                    return jdom`<img load="lazy"
+                        class="bordered tweetImg"
+                        src="${m.media_url_https}" />`;
+                }
+                case 'video': {
+                    // TODO: link to actual video
+                    return jdom`<img load="lazy"
+                        class="bordered tweetImg"
+                        src="${m.media_url_https}" />`;
+                }
+                default:
+                    console.error('Unrecognized media type: ${m.type}');
+                    return null;
+            }
+        });
     }
 }
 
@@ -138,9 +153,22 @@ class ChannelItem extends Component {
 }
 
 class ChannelList extends ListOf(ChannelItem) {
+    init(...args) {
+        this.query = '';
+        super.init(...args);
+
+        const {actives} = args[1];
+        actives.addHandler(() => {
+            this.query = actives.get('query');
+            this.render();
+        });
+    }
     compose() {
         return jdom`<div class="channelList">
             ${this.nodes}
+            <div class="channelItem">
+                + ${this.query}
+            </div>
         </div>`;
     }
 }
@@ -174,7 +202,7 @@ class TweetItem extends Component {
             const retweeted = new Tweet(this.record.get('retweeted_status'));
             const props = retweeted.summarize();
 
-            return jdom`<div class="tweetItem">
+            return jdom`<div class="tweetItem ${retweeted.get('user').following ? '' : 'notFollowing'}">
                 <div class="tweetMeta">
                     ${retweeted.relativeDate()}
                     <br />
@@ -202,7 +230,7 @@ class TweetItem extends Component {
             </div>`;
         }
 
-        return jdom`<div class="tweetItem">
+        return jdom`<div class="tweetItem ${props.user.following ? '' : 'notFollowing'}">
             <div class="tweetMeta">
                 ${this.record.relativeDate()}
                 <br />
@@ -230,6 +258,11 @@ class TweetList extends ListOf(TweetItem) {
 
 class Timeline extends Component {
     init(tweets) {
+        // TODO: add options:
+        // - hide notFollowing tweets
+        // - hide retweets
+        // - hide image tweets
+        // TODO: option to refresh feed / force-refresh feed
         this.tweetList = new TweetList(tweets);
     }
     compose() {
@@ -269,8 +302,9 @@ class Stats extends Component {
 }
 
 class QueryBar extends Component {
-    init() {
-        this.query = '';
+    init({actives}) {
+        this.input = '';
+        this.actives = actives;
     }
     compose() {
         return jdom`<div class="queryBar">
@@ -281,8 +315,14 @@ class QueryBar extends Component {
             <input class="bordered queryBar-input"
                 type="text"
                 placeholder="has: by: since: until:"
-                value="${this.query}" />
-            <button class="solid queryBar-button">→</button>
+                value="${this.input}"
+                oninput="${evt => this.input = evt.target.value}" />
+            <button class="solid queryBar-button"
+                onclick="${evt => {
+                    this.actives.update({
+                        query: this.input,
+                    });
+                }}">→</button>
         </div>`;
     }
 }
@@ -290,6 +330,7 @@ class QueryBar extends Component {
 class App extends Component {
     init() {
         this.actives = new Record({
+            query: '',
             channel: new Channel({
                 name: 'home',
                 query: 'home_timeline',
@@ -299,12 +340,14 @@ class App extends Component {
             this.actives.get('channel'),
             new Channel({
                 name: 'thesephist.com',
-                query: 'url:"https://thesephist.com"'
+                query: 'thesephist.com'
             }),
         ]);
         this.tweets = new TweetStore();
 
-        this.queryBar = new QueryBar();
+        this.queryBar = new QueryBar({
+            actives: this.actives,
+        });
         this.sidebar = new Sidebar(this.channels, {
             actives: this.actives,
         });
@@ -328,7 +371,7 @@ class App extends Component {
             default: {
                 return fetch(`/search?query=${channel.get('query')}`)
                     .then(resp => resp.json())
-                    .then(data => this.tweets.reset(data.data.map(tweet => new Tweet(tweet))));
+                    .then(data => this.tweets.reset(data.statuses.map(tweet => new Tweet(tweet))));
             }
         }
     }
