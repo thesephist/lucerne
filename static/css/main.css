@@ -8,6 +8,7 @@ body {
     --lc-padding: .25em .6em;
     --background: #fafafa;
     --foreground-light: #888;
+    --highlight: rgba(0, 0, 0, .1);
 }
 
 button,
@@ -30,6 +31,10 @@ textarea {
     color: #fff;
     background: #000;
     padding: var(--lc-padding);
+}
+
+.solid:hover {
+    background: var(--foreground-light) !important;
 }
 
 .app {
@@ -106,12 +111,8 @@ a.queryBar-logo {
     flex-direction: row;
 }
 
-.tweetList > .tweetItem {
-    border-bottom: 1px solid #ddd;
-}
-
 .tweetItem a {
-    background: rgba(0, 0, 0, .1);
+    background: var(--highlight);
     padding: 0 .3em;
     color: #000;
     text-decoration: none;
@@ -144,7 +145,7 @@ a.queryBar-logo {
 
 .tweetImg {
     max-height: 120px;
-    margin: .25em 0;
+    margin: .25em .5em .25em 0;
 }
 
 .tweetStats {
@@ -171,6 +172,11 @@ a.queryBar-logo {
 
 .channelItem {
     padding: var(--lc-padding);
+    cursor: pointer;
+}
+
+.channelItem:hover {
+    background: var(--highlight);
 }
 
 .trends,

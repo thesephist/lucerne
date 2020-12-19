@@ -1,9 +1,7 @@
-all: ci
+all: run
 
-# run all tests under test/
-check: run
-	ink ./src/tests.ink
-t: check
+run:
+	ls *.ink **/*.ink | entr -cr ink main.ink
 
 fmt:
 	inkfmt fix lib/*.ink *.ink

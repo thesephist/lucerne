@@ -28,6 +28,10 @@ function decodeHTML(text) {
     return ta.value;
 }
 
+function cleanUpURL(url) {
+    return decodeURI(url).replace(/https?:\/\//, '');
+}
+
 class Channel extends Record {}
 
 class ChannelStore extends StoreOf(Channel) {}
@@ -58,9 +62,9 @@ class Tweet extends Record {
             });
         }
         for (const url of urls) {
-            const {display_url, expanded_url, indices} = url;
+            const {expanded_url, indices} = url;
             replacements.push({
-                entity: jdom`<a href="${expanded_url}">${display_url}</a>`,
+                entity: jdom`<a href="${expanded_url}">${cleanUpURL(expanded_url)}</a>`,
                 indices,
             });
         }
@@ -91,6 +95,8 @@ class Tweet extends Record {
         let front = [];
         for (const {entity, indices} of replacements) {
             const [start, end] = indices;
+            if (start < lastIdx) continue;
+
             front.push(decodeHTML(original.substring(lastIdx, start)));
             front.push(entity);
             lastIdx = end;
@@ -114,11 +120,18 @@ class Tweet extends Record {
 class TweetStore extends StoreOf(Record) {}
 
 class ChannelItem extends Component {
-    init(record) {
+    init(record, remover, {actives}) {
+        this.isActive = () => actives.get('channel') === record;
+        this.setActive = () => actives.update({
+            channel: record,
+        });
+        actives.addHandler(() => this.render(record.summarize()));
+
         this.bind(record, data => this.render(data));
     }
     compose(props) {
-        return jdom`<div class="channelItem">
+        return jdom`<div class="channelItem ${this.isActive() ? 'solid' : ''}"
+            onclick="${this.setActive}">
             ${props.name}
         </div>`;
     }
@@ -133,8 +146,8 @@ class ChannelList extends ListOf(ChannelItem) {
 }
 
 class Sidebar extends Component {
-    init(channels) {
-        this.channelList = new ChannelList(channels)
+    init(channels, props) {
+        this.channelList = new ChannelList(channels, props);
     }
     compose() {
         return jdom`<div class="sidebar">
@@ -276,26 +289,48 @@ class QueryBar extends Component {
 
 class App extends Component {
     init() {
-        this.channels = new ChannelStore([
-            new Channel({
+        this.actives = new Record({
+            channel: new Channel({
                 name: 'home',
-                query: 'home',
+                query: 'home_timeline',
             }),
+        });
+        this.channels = new ChannelStore([
+            this.actives.get('channel'),
             new Channel({
                 name: 'thesephist.com',
-                query: 'has:thesephist.com'
+                query: 'url:"https://thesephist.com"'
             }),
         ]);
         this.tweets = new TweetStore();
 
         this.queryBar = new QueryBar();
-        this.sidebar = new Sidebar(this.channels);
+        this.sidebar = new Sidebar(this.channels, {
+            actives: this.actives,
+        });
         this.timeline = new Timeline(this.tweets);
         this.stats = new Stats();
 
-        fetch('/timeline')
-            .then(resp => resp.json())
-            .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
+        this.actives.addHandler(() => this.fetchTimeline());
+    }
+    fetchTimeline() {
+        const channel = this.actives.get('channel');
+        if (this._fetchedChannel === channel) return;
+        this._fetchedChannel = channel;
+
+        this.tweets.reset([]);
+        switch (channel.get('query')) {
+            case 'home_timeline': {
+                return fetch('/timeline')
+                    .then(resp => resp.json())
+                    .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
+            }
+            default: {
+                return fetch(`/search?query=${channel.get('query')}`)
+                    .then(resp => resp.json())
+                    .then(data => this.tweets.reset(data.data.map(tweet => new Tweet(tweet))));
+            }
+        }
     }
     compose() {
         return jdom`<div class="app">
@@ -311,5 +346,4 @@ class App extends Component {
 
 const app = new App();
 document.getElementById('root').appendChild(app.node);
-
 
