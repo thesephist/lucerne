@@ -16,7 +16,9 @@ sign := sig.sign
 CacheGet := (cache.new)()
 
 ` TODO: migrate these early on to the v2 APIs which include conversation data
-	and metrics, both of which we want for Lucerne. `
+	and metrics, both of which we want for Lucerne.
+
+	NOTE: the home_timeline and status update APIs do not yet have v2 replacements. `
 
 ` send a tweet. Will log an error if status is too long. `
 send := status => (
