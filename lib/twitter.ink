@@ -37,6 +37,31 @@ send := status => (
 	})
 )
 
+` retrieves a timeline for a user `
+retrieveUser := screenName => (
+	request := {
+		method: 'GET'
+		url: 'https://api.twitter.com/1.1/statuses/user_timeline.json'
+	}
+
+	params := {
+		'tweet_mode': 'extended'
+		'exclude_replies': 'false'
+		'include_rts': '1'
+		'count': '100'
+		'screen_name': screenName
+	}
+
+	CacheGet(
+		request.url + string(params)
+		cb => req(sign(request, params), evt => evt.type :: {
+			'resp' -> cb(evt.data.body)
+			'error' -> log(evt.message)
+		})
+		data => log(data)
+	)
+)
+
 ` retrieve the timeline for the logged-in user `
 retrieve := () => (
 	request := {
@@ -47,12 +72,13 @@ retrieve := () => (
 	params := {
 		` acccommodate tweets >140 characters `
 		'tweet_mode': 'extended'
-		`` 'include_rts': '1'
-		`` 'count': '100'
+		'exclude_replies': 'false'
+		'include_rts': '1'
+		'count': '100'
 	}
 
 	CacheGet(
-		request.url
+		request.url + string(params)
 		cb => req(sign(request, params), evt => evt.type :: {
 			'resp' -> cb(evt.data.body)
 			'error' -> log(evt.message)
@@ -61,4 +87,27 @@ retrieve := () => (
 	)
 )
 
+search := query => (
+	request := {
+		method: 'GET'
+		url: 'https://api.twitter.com/2/tweets/search/recent'
+	}
+
+	params := {
+		'max_results': '100'
+		'query': query
+	}
+
+	CacheGet(
+		request.url + string(params)
+		cb => req(sign(request, params), evt => evt.type :: {
+			'resp' -> cb(evt.data.body)
+			'error' -> log(evt.message)
+		})
+		data => log(data)
+	)
+)
+
+`` search('from:thesephist')
+`` retrieveUser('thesephist')
 `` retrieve()

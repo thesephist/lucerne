@@ -4,12 +4,13 @@
 std := load('../vendor/std')
 str := load('../vendor/str')
 json := load('../vendor/json')
+quicksort := load('../vendor/quicksort')
 
 ` hmac-sha1 signing `
 hmac := load('hmac')
 
-f := std.format
 log := std.log
+f := std.format
 hex := std.hex
 xeh := std.xeh
 map := std.map
@@ -18,6 +19,7 @@ slice := std.slice
 join := std.join
 upper := str.upper
 ser := json.ser
+sort := quicksort.sort
 
 ` Local credentials `
 creds := load('../credentials')
@@ -94,15 +96,18 @@ sign := (req, params) => (
 
 	queryStrings := map(keys(params), key => key + '=' + percentEncode(params.(key)))
 
-	` generate an OAuth signature for the status update request `
-	paramString := cat(join([
+	` OAuth HMAC signing requires that the query strings are sorted lexicographically `
+	sortedParams := sort(join([
 		'oauth_consumer_key=' + percentEncode(ConsumerKey)
 		'oauth_nonce=' + percentEncode(nonceStr)
 		'oauth_signature_method=HMAC-SHA1'
 		'oauth_timestamp=' + timestamp
 		'oauth_token=' + percentEncode(OAuthToken)
 		'oauth_version=1.0'
-	], queryStrings), '&')
+	], queryStrings))
+
+	` generate an OAuth signature for the status update request `
+	paramString := cat(sortedParams, '&')
 	base := cat([
 		req.method
 		percentEncode(req.url)
