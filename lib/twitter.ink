@@ -15,6 +15,9 @@ sign := sig.sign
 ` global request cache, re: Twitter's API rate limit `
 CacheGet := (cache.new)()
 
+` TODO: migrate these early on to the v2 APIs which include conversation data
+	and metrics, both of which we want for Lucerne. `
+
 ` send a tweet. Will log an error if status is too long. `
 send := status => (
 	request := {

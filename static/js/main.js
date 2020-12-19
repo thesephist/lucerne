@@ -22,6 +22,12 @@ function fmtDate(date) {
 	}
 }
 
+function decodeHTML(text) {
+    const ta = document.createElement('textarea');
+    ta.innerHTML = text;
+    return ta.value;
+}
+
 class Channel extends Record {}
 
 class ChannelStore extends StoreOf(Channel) {}
@@ -39,6 +45,10 @@ class Tweet extends Record {
 	isQuote() {
 		return this.get('is_quote_status') && !!this.get('quoted_status');
 	}
+    text() {
+        // TODO: expand extended entities into full_text
+        return decodeHTML(this.get('full_text'));
+    }
 	media() {
 		const entities = this.get('extended_entities');
 		if (!entities) return [];
@@ -78,7 +88,6 @@ class Sidebar extends Component {
 	}
 	compose() {
 		return jdom`<div class="sidebar">
-			Sidebar
 			${this.channelList.node}
 		</div>`;
 	}
@@ -90,21 +99,38 @@ class TweetItem extends Component {
 	}
 	compose(props) {
 		const tweetText = [
-			// TODO: expand extended entities into full_text
-			props.full_text,
+            this.record.text(),
 			jdom`<div class="tweetMedia">${this.record.media()}</div>`,
 		];
 		let tweetBody = jdom`<div class="tweetBody">
 			<strong>${props.user.screen_name}</strong>
 			${tweetText}
 		</div>`;
+
 		if (this.record.isRetweet()) {
-			tweetBody = jdom`<div class="tweetBody">
-				<strong>${props.user.screen_name}</strong>
-				→
-				<strong>${props.retweeted_status.user.screen_name}</strong>
-				${new TweetItem(new Tweet(props.retweeted_status)).node}
-			</div>`;
+            const retweeted = new Tweet(this.record.get('retweeted_status'));
+            const props = retweeted.summarize();
+
+            return jdom`<div class="tweetItem">
+                <div class="tweetMeta">
+                    ${retweeted.relativeDate()}
+                    <br />
+                    ${props.in_reply_to_status_id ? '↑' : ''}
+                </div>
+                <div class="tweetMain">
+                    <div class="tweetBody">
+                        <strong>${this.record.get('user').screen_name}</strong>
+                        →
+                        <strong>${props.user.screen_name}</strong>
+                        ${retweeted.text()}
+                    </div>
+                    <div class="tweetStats">
+                        ${props.retweet_count} rt
+                        ·
+                        ${props.favorite_count} fav
+                    </div>
+                </div>
+            </div>`;
 		} else if (this.record.isQuote()) {
 			tweetBody = jdom`<div class="tweetBody">
 				<strong>${props.user.screen_name}</strong>
@@ -122,14 +148,12 @@ class TweetItem extends Component {
 			<div class="tweetMain">
 				${tweetBody}
 				<div class="tweetStats">
-					0 re
-					·
 					${props.retweet_count} rt
 					·
 					${props.favorite_count} fav
 				</div>
 			</div>
-		</div>`
+		</div>`;
 	}
 }
 
@@ -152,10 +176,31 @@ class Timeline extends Component {
 	}
 }
 
+class Trends extends Component {
+    compose() {
+        return jdom`<div class="trends">
+            <div class="trendsTitle">trends</div>
+        </div>`;
+    }
+}
+
+class Fans extends Component {
+    compose() {
+        return jdom`<div class="fans">
+            <div class="fansTitle">fans</div>
+        </div>`;
+    }
+}
+
 class Stats extends Component {
+    init() {
+        this.trends = new Trends();
+        this.fans = new Fans();
+    }
 	compose() {
 		return jdom`<div class="stats">
-			stats
+            ${this.trends.node}
+            ${this.fans.node}
 		</div>`;
 	}
 }
