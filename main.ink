@@ -1,76 +1,64 @@
-` tweet.ink, program to send tweets `
+` Lucerne, a twitter client `
 
-` standard libraries `
 std := load('vendor/std')
+str := load('vendor/str')
 json := load('vendor/json')
 
-each := std.each
+log := std.log
+f := std.format
 deJSON := json.de
 
-` hmac-sha1 signing `
-hmac := load('lib/hmac')
-sig := load('lib/sig')
-cache := load('lib/cache')
+readFile := std.readFile
 
-log := std.log
-sign := sig.sign
+http := load('vendor/http')
+mime := load('vendor/mime')
+percent := load('vendor/percent')
 
-` global request cache, re: Twitter's API rate limit `
-CacheGet := (cache.new)()
+mimeForPath := mime.forPath
+pctDecode := percent.decode
 
-` send a tweet. Will log an error if status is too long. `
-send := status => (
-	request := {
-		method: 'POST'
-		url: 'https://api.twitter.com/1.1/statuses/update.json'
-	}
+twitter := load('lib/twitter')
 
-	params := {
-		status: status
-	}
+server := (http.new)()
+MethodNotAllowed := {status: 405, body: 'method not allowed'}
 
-	req(sign(request, params), evt => evt.type :: {
-		'resp' -> log(evt.data)
-		'error' -> log(evt.message)
-	})
-)
-
-` retrieve the timeline for the logged-in user `
-retrieve := () => (
-	request := {
-		method: 'GET'
-		url: 'https://api.twitter.com/1.1/statuses/home_timeline.json'
-	}
-
-	params := {
-		` acccommodate tweets >140 characters `
-		'tweet_mode': 'extended'
-	}
-
-	CacheGet(
-		request.url
-		cb => req(sign(request, params), evt => evt.type :: {
-			'resp' -> cb(evt.data.body)
-			'error' -> log(evt.message)
+serveStatic := path => (req, end) => req.method :: {
+	'GET' -> readFile('static/' + path, file => file :: {
+		() -> end({status: 404, body: 'file not found'})
+		_ -> end({
+			status: 200
+			headers: {'Content-Type': mimeForPath(path)}
+			body: file
 		})
-		data => log(data)
-	)
-)
+	})
+	_ -> end(MethodNotAllowed)
+}
+
+addRoute := server.addRoute
+addRoute('/timeline', params => (req, end) => req.method :: {
+	'GET' -> retrieve(data => end({
+		status: 200
+		headers: {'Content-Type': 'application/json'}
+		body: data :: {
+			() -> '{"error": "failed to fetch"}'
+			_ -> data
+		}
+	}))
+	_ -> end(MethodNotAllowed)
+})
+addRoute('/static/*staticPath', params => serveStatic(params.staticPath))
+addRoute('/', params => serveStatic('index.html'))
+
+end := (server.start)(7238)
+log(f('Lucerne started, listening on 0.0.0.0:{{0}}', [7283]))
 
 `` TEST
 `` send('Tweet sent with Ink, ' + string(floor(time())))
 `` retrieve()
-
-`` TEST rendering from a saved/cached timeline file on disk
-`` readFile := std.readFile
-`` readFile('./home_timeline.json', file => file :: {
-`` 	() -> log('error reading file')
-`` 	_ -> (
-`` 		tweets := deJSON(file)
-`` 		log(len(tweets))
-`` 		each(tweets, tweet => (
-`` 			log(tweet.user.'screen_name')
-`` 			log(tweet.'full_text')
-`` 		))
-`` 	)
-`` })
+retrieve := cb => (
+	readFile := std.readFile
+	readFile('./home_timeline.json', file => file :: {
+		() -> cb(())
+		_ -> cb(file)
+	})
+)

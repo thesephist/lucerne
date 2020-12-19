@@ -1,0 +1,192 @@
+html,
+body {
+	margin: 0;
+	font-size: 16px;
+	background: #fafafa;
+
+	--font-sans: 'Inter', 'Helvetica Neue', system-ui, 'Helvetica', 'Arial', sans-serif;
+	--lc-padding: .25em .6em;
+	--foreground-light: #888;
+}
+
+button,
+input,
+textarea {
+	font-size: 1em;
+	font-family: var(--font-sans);
+	background: #fafafa;
+}
+
+.mobile {
+	display: none;
+}
+
+.bordered {
+	border: 1px solid #000;
+}
+
+.solid {
+	color: #fff;
+	background: #000;
+	padding: var(--lc-padding);
+}
+
+.app {
+	font-family: var(--font-sans);
+	margin: 1em auto;
+	max-width: 800px;
+	width: calc(100% - 2em);
+	height: calc(100vh - 2em);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.queryBar {
+	width: 100%;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.queryBar-input {
+	padding: var(--lc-padding);
+	flex-shrink: 1;
+	flex-grow: 1;
+	width: 0;
+}
+
+.queryBar-logo,
+.queryBar-input,
+.queryBar-button {
+	box-sizing: border-box;
+	line-height: 1.5em;
+	height: 2em;
+}
+
+.queryBar-logo,
+.queryBar-button {
+	font-weight: bold;
+}
+
+a.queryBar-logo {
+	text-decoration: none;
+}
+
+.sections {
+	position: relative;
+
+	flex-grow: 1;
+	flex-shrink: 1;
+	height: 0;
+	width: 100%;
+}
+
+.sidebar,
+.timeline,
+.stats {
+	height: 100%;
+	overflow-y: auto;
+}
+
+.timeline {
+	border-top: 0;
+	line-height: 1.5em;
+}
+
+.tweetList {
+	padding-top: .5em;
+}
+
+.tweetItem {
+	padding: var(--lc-padding);
+	display: flex;
+	flex-direction: row;
+}
+
+.tweetList > .tweetItem {
+	border-bottom: 1px solid #ddd;
+}
+
+.tweetItem .tweetItem {
+	padding-left: 0;
+}
+
+.tweetItem .tweetMeta {
+	flex-shrink: 0;
+	flex-grow: 0;
+	width: 2.5em;
+	text-align: right;
+	color: var(--foreground-light);
+}
+
+.tweetItem .tweetMain {
+	flex-shrink: 1;
+	flex-grow: 1;
+	margin-left: .5em;
+}
+
+.tweetMedia {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.tweetImg {
+	max-height: 120px;
+	margin: .25em 0;
+}
+
+.tweetStats {
+	color: var(--foreground-light);
+	font-size: .8em;
+}
+
+.sidebar,
+.stats {
+	position: absolute;
+	top: -1px;
+	border-top: 1px solid #000;
+	width: calc(50vw - 400px - .5em);
+	max-width: 300px;
+}
+
+.sidebar {
+	right: 100%;
+}
+
+.stats {
+	left: 100%;
+}
+
+@media only screen and (min-width: 833px) {
+	.sidebar {
+		text-align: right;
+	}
+}
+
+@media only screen and (max-width: 832px) {
+	.mobile {
+		display: initial;
+	}
+	.desktop {
+		display: none;
+	}
+
+	.app {
+		margin-top: .5em;
+		width: calc(100% - 1em);
+		height: calc(100vh - 1em);
+	}
+	.sidebar,
+	.stats {
+		/* TODO: give them better layout */
+		display: none;
+	}
+
+	.tweetImg {
+		max-height: 80px;
+	}
+}
+
