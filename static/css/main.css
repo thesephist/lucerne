@@ -54,6 +54,46 @@ textarea {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+	position: relative;
+}
+
+.queryBar .helper {
+	display: none;
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	width: 100%;
+	padding: var(--lc-padding);
+	background: var(--background);
+	box-sizing: border-box;
+	border-top: 0;
+	z-index: 100;
+}
+
+.queryBar .syntaxLine {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: flex-start;
+	line-height: 1.5em;
+}
+
+.queryBar .syntaxHint,
+.queryBar .syntaxAction {
+	width: 50%;
+}
+
+.queryBar .syntaxHint {
+
+}
+
+.queryBar .syntaxAction {
+	color: var(--foreground-light);
+}
+
+.queryBar-input:focus ~ .helper {
+	display: block;
 }
 
 .queryBar-input {
@@ -183,6 +223,10 @@ a.queryBar-logo {
     background: var(--highlight);
 }
 
+.channelItem.pseudoChannel {
+	color: var(--foreground-light);
+}
+
 .trends,
 .fans {
     position: relative;
@@ -208,6 +252,10 @@ a.queryBar-logo {
 }
 
 @media only screen and (max-width: 832px) {
+	html,
+	body {
+		font-size: 14px;
+	}
     .mobile {
         display: initial;
     }
@@ -222,9 +270,20 @@ a.queryBar-logo {
     }
     .sidebar,
     .stats {
-        /* TODO: give them better layout */
         display: none;
     }
+
+	.queryBar .syntaxLine {
+		flex-direction: column;
+	}
+	.queryBar .syntaxHint,
+	.queryBar .syntaxAction {
+		width: 100%;
+		box-sizing: border-box;
+	}
+	.queryBar .syntaxAction {
+		padding-left: 1em;
+	}
 
     .tweetImg {
         max-height: 80px;

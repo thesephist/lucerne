@@ -113,7 +113,8 @@ class Tweet extends Record {
 
         return media.map(m => {
             switch (m.type) {
-                case 'photo': {
+                case 'photo':
+                case 'animated_gif': {
                     return jdom`<img load="lazy"
                         class="bordered tweetImg"
                         src="${m.media_url_https}" />`;
@@ -125,7 +126,7 @@ class Tweet extends Record {
                         src="${m.media_url_https}" />`;
                 }
                 default:
-                    console.error('Unrecognized media type: ${m.type}');
+                    console.error(`Unrecognized media type: ${m.type}`);
                     return null;
             }
         });
@@ -138,6 +139,7 @@ class ChannelItem extends Component {
     init(record, remover, {actives}) {
         this.isActive = () => actives.get('channel') === record;
         this.setActive = () => actives.update({
+            query: '',
             channel: record,
         });
         actives.addHandler(() => this.render(record.summarize()));
@@ -166,7 +168,12 @@ class ChannelList extends ListOf(ChannelItem) {
     compose() {
         return jdom`<div class="channelList">
             ${this.nodes}
-            <div class="channelItem">
+            <div class="pseudoChannel channelItem" onclick="${evt => {
+                this.record.create({
+                    name: this.query,
+                    query: this.query,
+                });
+            }}">
                 + ${this.query}
             </div>
         </div>`;
@@ -314,15 +321,65 @@ class QueryBar extends Component {
             </a>
             <input class="bordered queryBar-input"
                 type="text"
+                autofocus
                 placeholder="has: by: since: until:"
                 value="${this.input}"
-                oninput="${evt => this.input = evt.target.value}" />
+                oninput="${evt => this.input = evt.target.value}"
+                onkeydown="${evt => {
+                    if (evt.key === 'Enter') {
+                        this.actives.update({
+                            query: this.input.trim(),
+                        });
+                    }
+                }}"/>
             <button class="solid queryBar-button"
                 onclick="${evt => {
                     this.actives.update({
-                        query: this.input,
+                        query: this.input.trim(),
                     });
-                }}">→</button>
+                }}">-></button>
+            <div class="bordered helper">
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>from</strong>:user</div>
+                    <div class="syntaxAction">tweets by @user</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>to</strong>:user</div>
+                    <div class="syntaxAction">tweets in reply to @user</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>url</strong>:uri</div>
+                    <div class="syntaxAction">tweets with link containing "uri"</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>filter</strong>:{media, retweets, links, native_video}</div>
+                    <div class="syntaxAction">filter by type</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>since</strong>:YYYY-MM-DD, <strong>until</strong>:YYYY-MM-DD</div>
+                    <div class="syntaxAction">tweets since, tweets, until</div>
+                </div>
+                <hr/>
+                <div class="syntaxLine"><div
+                    class="syntaxHint">-A</div>
+                    <div class="syntaxAction"><strong>not</strong> A e.g. -is:retweet</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint">A B</div>
+                    <div class="syntaxAction">A <strong>and</strong> B</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint">A <strong>OR</strong> B</div>
+                    <div class="syntaxAction">A <strong>or</strong> B</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint">"A B C"</div>
+                    <div class="syntaxAction">Literal match "A B C"</div>
+                </div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint">Parentheses group, <strong>AND</strong> precedes <strong>OR</strong></div>
+                </div>
+            </div>
         </div>`;
     }
 }
@@ -357,7 +414,14 @@ class App extends Component {
         this.actives.addHandler(() => this.fetchTimeline());
     }
     fetchTimeline() {
-        const channel = this.actives.get('channel');
+        const actives = this.actives.summarize();
+
+        // if query is non-blank, create a temp channel for the query
+        const channel = actives.query ? new Channel({
+            name: actives.query,
+            query: actives.query,
+        }) : actives.channel;
+
         if (this._fetchedChannel === channel) return;
         this._fetchedChannel = channel;
 
@@ -369,7 +433,7 @@ class App extends Component {
                     .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
             }
             default: {
-                return fetch(`/search?query=${channel.get('query')}`)
+                return fetch(`/search?query=${encodeURIComponent(channel.get('query'))}`)
                     .then(resp => resp.json())
                     .then(data => this.tweets.reset(data.statuses.map(tweet => new Tweet(tweet))));
             }
