@@ -405,6 +405,7 @@ class TweetItem extends Component {
                         →
                         <strong>${props.user.screen_name}</strong>
                         ${retweeted.text()}
+                        <div class="tweetMedia">${retweeted.media()}</div>
                     </div>
                     <div class="tweetStats">
                         ${props.retweet_count} rt
