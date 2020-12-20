@@ -9,6 +9,7 @@ body {
     --background: #fafafa;
     --foreground-light: #888;
     --highlight: rgba(0, 0, 0, .1);
+    --shade: rgba(0, 0, 0, .25);
 }
 
 button,
@@ -54,46 +55,62 @@ textarea {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-	position: relative;
+    position: relative;
+    z-index: 20;
 }
 
 .queryBar .helper {
-	display: none;
-	position: absolute;
-	top: 100%;
-	left: 0;
-	right: 0;
-	width: 100%;
-	padding: var(--lc-padding);
-	background: var(--background);
-	box-sizing: border-box;
-	border-top: 0;
-	z-index: 100;
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    padding: var(--lc-padding);
+    background: var(--background);
+    box-sizing: border-box;
+    border-top: 0;
+    z-index: 100;
 }
 
 .queryBar .syntaxLine {
-	display: flex;
-	flex-direction: row;
-	align-items: flex-start;
-	justify-content: flex-start;
-	line-height: 1.5em;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    line-height: 1.5em;
 }
 
 .queryBar .syntaxHint,
 .queryBar .syntaxAction {
-	width: 50%;
-}
-
-.queryBar .syntaxHint {
-
+    width: 50%;
 }
 
 .queryBar .syntaxAction {
-	color: var(--foreground-light);
+    color: var(--foreground-light);
+}
+
+.queryBar-shade {
+    opacity: 0;
+    pointer-events; none;
+    background: var(--shade);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    transition: opacity .2s;
+    pointer-events: none;
+}
+
+.queryBar-input:focus ~.queryBar-shade {
+    opacity: 1;
+    pointer-events: all;
 }
 
 .queryBar-input:focus ~ .helper {
-	display: block;
+    display: block;
 }
 
 .queryBar-input {
@@ -178,8 +195,8 @@ a.queryBar-logo {
 }
 
 .tweetItem .tweetBody {
-	white-space: pre-line;
-	word-break: break-word;
+    white-space: pre-line;
+    word-break: break-word;
 }
 
 .tweetMedia {
@@ -218,14 +235,82 @@ a.queryBar-logo {
 .channelItem {
     padding: var(--lc-padding);
     cursor: pointer;
+    position: relative;
 }
 
-.channelItem:hover {
+.channelItem:not(.editing):hover {
     background: var(--highlight);
 }
 
 .channelItem.pseudoChannel {
-	color: var(--foreground-light);
+    color: var(--foreground-light);
+}
+
+.channelItem .channelButtons {
+    display: none;
+    z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: var(--lc-padding);
+}
+
+.channelItem:hover .channelButtons {
+    display: block;
+    padding-left: .25em;
+}
+
+.channelItem .channelButton {
+    border: 0;
+    background: 0;
+    cursor: pointer;
+    padding: 0 .25em;
+    color: inherit;
+}
+
+.channelItem .channelButton:hover {
+    color: var(--foreground-light);
+}
+
+.channelItem .shortcutNumber {
+    z-index: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: var(--lc-padding);
+    color: var(--foreground-light);
+}
+
+.channelItem.solid .shortcutNumber {
+    color: inherit;
+}
+
+.channelItem:hover .shortcutNumber {
+    display: none;
+}
+
+.channelItem.editing {
+    padding: 0;
+}
+
+.channelItem .channelInput {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.channelItem .channelInput input {
+    width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: var(--lc-padding);
+    background: 0;
+}
+
+.channelItem .channelInput .channelButton {
+    padding: var(--lc-padding);
+    flex-grow: 0;
+    flex-shrink: 0;
 }
 
 .trends,
@@ -253,10 +338,10 @@ a.queryBar-logo {
 }
 
 @media only screen and (max-width: 832px) {
-	html,
-	body {
-		font-size: 14px;
-	}
+    html,
+    body {
+        font-size: 14px;
+    }
     .mobile {
         display: initial;
     }
@@ -274,17 +359,17 @@ a.queryBar-logo {
         display: none;
     }
 
-	.queryBar .syntaxLine {
-		flex-direction: column;
-	}
-	.queryBar .syntaxHint,
-	.queryBar .syntaxAction {
-		width: 100%;
-		box-sizing: border-box;
-	}
-	.queryBar .syntaxAction {
-		padding-left: 1em;
-	}
+    .queryBar .syntaxLine {
+        flex-direction: column;
+    }
+    .queryBar .syntaxHint,
+    .queryBar .syntaxAction {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .queryBar .syntaxAction {
+        padding-left: 1em;
+    }
 
     .tweetImg {
         max-height: 80px;

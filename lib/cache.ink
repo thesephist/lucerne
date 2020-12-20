@@ -6,6 +6,7 @@ log := std.log
 f := std.format
 
 CacheDelay := 60 `` seconds
+CacheDelay := 3600 `` TODO: DEBUG
 
 new := () => (
 	store := {}

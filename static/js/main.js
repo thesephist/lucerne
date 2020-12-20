@@ -32,6 +32,19 @@ function cleanUpURL(url) {
     return decodeURI(url).replace(/https?:\/\//, '');
 }
 
+function Modal(title, children) {
+    return jdom`<div class="modalWrapper">
+        <div class="modal">
+            <div class="modalTitle">
+                ${title}
+            </div>
+            <div class="modalBody">
+                ${children}
+            </div>
+        </div>
+    </div>`;
+}
+
 class Channel extends Record {}
 
 class ChannelStore extends StoreOf(Channel) {
@@ -163,20 +176,82 @@ class Tweet extends Record {
 class TweetStore extends StoreOf(Record) {}
 
 class ChannelItem extends Component {
-    init(record, remover, {actives}) {
+    init(record, remover, {actives}, {getShortcutNumber}) {
+        this._editing = false;
+        this._input = null;
+
+        this.remover = remover;
+        this.getShortcutNumber = getShortcutNumber;
         this.isActive = () => actives.get('channel') === record;
-        this.setActive = () => actives.update({
-            query: '',
-            channel: record,
-        });
+        this.setActive = () => {
+            if (this._editing) return;
+
+            actives.update({
+                query: '',
+                channel: record,
+            });
+        }
         actives.addHandler(() => this.render(record.summarize()));
 
         this.bind(record, data => this.render(data));
     }
+    // TODO: editability
     compose(props) {
+        if (this._editing) {
+            const stopEditing = () => {
+                this._editing = false;
+                this._input = '';
+                // TODO: save
+                this.render();
+            }
+            const persist  = () => {
+                this.record.update({
+                    name: this._input,
+                });
+                stopEditing();
+            }
+            return jdom`<div class="channelItem editing ${this.isActive() ? 'solid ' : ''}">
+                <div class="channelName channelInput">
+                    <input type="text" value="${this._input}"
+                        class="bordered"
+                        oninput="${evt => this._input = evt.target.value}"
+                        onkeydown="${evt => {
+                            switch (evt.key) {
+                                case 'Enter': {
+                                    persist();
+                                    break;
+                                }
+                                case 'Escape': {
+                                    stopEditing();
+                                    break;
+                                }
+                            }
+                        }}"/>
+                    <button class="channelSave channelButton"
+                        onclick="${persist}">save</button>
+                </div>
+            </div>;`
+        }
+
         return jdom`<div class="channelItem ${this.isActive() ? 'solid' : ''}"
             onclick="${this.setActive}">
-            ${props.name}
+            <div class="channelButtons" onclick="${evt => evt.stopPropagation()}">
+                <button class="channelButton" onclick="${this.remover}">del</button>
+                <button class="channelButton" onclick="${evt => {
+                    this._editing = true;
+                    this._input = props.name;
+                    this.render();
+                    this.node.querySelector('input').focus();
+                }}">edit</button>
+                <button class="channelButton">↑</button>
+                <button class="channelButton">↓</button>
+            </div>
+            <div class="shortcutNumber">
+                ${this.getShortcutNumber(this.record)}
+            </div>
+            <div class="channelName">
+                ${props.name}
+            </div>
         </div>`;
     }
 }
@@ -184,13 +259,50 @@ class ChannelItem extends Component {
 class ChannelList extends ListOf(ChannelItem) {
     init(...args) {
         this.query = '';
-        super.init(...args);
+        super.init(...args, {
+            getShortcutNumber: chan => {
+                const index = this.record.summarize().indexOf(chan);
+                const number = index + 1;
+                if (number <= 10) {
+                    return number.toString();
+                } else {
+                    return '';
+                }
+            },
+        });
 
         const {actives} = args[1];
         actives.addHandler(() => {
             this.query = actives.get('query');
             this.render();
         });
+
+        document.addEventListener('keydown', evt => {
+            switch (evt.key) {
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9': {
+                    const selected = this.record.summarize()[+evt.key - 1]; // 1-index
+                    if (selected) {
+                        actives.update({channel: selected});
+                    }
+                    break;
+                }
+                case '0': {
+                    const selected = this.record.summarize()[10 - 1];
+                    if (selected) {
+                        actives.update({channel: selected});
+                    }
+                    break;
+                }
+            }
+        })
     }
     compose() {
         return jdom`<div class="channelList">
@@ -341,6 +453,16 @@ class QueryBar extends Component {
     init({actives}) {
         this.input = '';
         this.actives = actives;
+
+        document.addEventListener('keydown', evt => {
+            switch (evt.key) {
+                case '/': {
+                    evt.preventDefault();
+                    this.node.querySelector('.queryBar-input').focus();
+                    break;
+                }
+            }
+        });
     }
     compose() {
         return jdom`<div class="queryBar">
@@ -350,15 +472,21 @@ class QueryBar extends Component {
             </a>
             <input class="bordered queryBar-input"
                 type="text"
-                autofocus
                 placeholder="has: by: since: until:"
                 value="${this.input}"
                 oninput="${evt => this.input = evt.target.value}"
                 onkeydown="${evt => {
-                    if (evt.key === 'Enter') {
-                        this.actives.update({
-                            query: this.input.trim(),
-                        });
+                    switch (evt.key) {
+                        case 'Enter': {
+                            this.actives.update({
+                                query: this.input.trim(),
+                            });
+                            break;
+                        }
+                        case 'Escape': {
+                            document.activeElement.blur();
+                            break;
+                        }
                     }
                 }}"/>
             <button class="solid queryBar-button"
@@ -409,6 +537,7 @@ class QueryBar extends Component {
                     <div class="syntaxHint">Parentheses group, <strong>AND</strong> precedes <strong>OR</strong></div>
                 </div>
             </div>
+            <div class="queryBar-shade"></div>
         </div>`;
     }
 }
@@ -453,8 +582,8 @@ class App extends Component {
             query: actives.query,
         }) : actives.channel;
 
-        if (this._fetchedChannel === channel) return;
-        this._fetchedChannel = channel;
+        if (this._fetchedQuery === channel.get('query')) return;
+        this._fetchedQuery = channel.get('query');
 
         this.tweets.reset([]);
         switch (channel.get('query')) {
