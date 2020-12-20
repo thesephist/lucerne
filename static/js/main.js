@@ -32,6 +32,38 @@ function cleanUpURL(url) {
     return decodeURI(url).replace(/https?:\/\//, '');
 }
 
+// Global singleton to manage keyboard shortcuts
+class ShortcutDispatcher {
+    constructor() {
+        this.shortcuts = {};
+
+        document.addEventListener('keydown', evt => {
+            if (['input', 'textarea'].includes(evt.target.tagName.toLowerCase())) {
+                return;
+            }
+
+            const fns = this.shortcuts[evt.key];
+            if (fns != null) {
+                evt.preventDefault();
+                for (const fn of fns) {
+                    fn(evt);
+                }
+            }
+        });
+    }
+    addHandlerForKey(key, fn) {
+        this.shortcuts[key] = this.shortcuts[key] || [];
+        this.shortcuts[key].push(fn);
+    }
+    addHandler(keys, fn) {
+        if (Array.isArray(keys)) {
+            for (const key of keys) this.addHandlerForKey(key, fn);
+        } else {
+            this.addHandlerForKey(keys, fn);
+        }
+    }
+}
+
 function Modal(title, children) {
     return jdom`<div class="modalWrapper">
         <div class="modal">
@@ -43,6 +75,15 @@ function Modal(title, children) {
             </div>
         </div>
     </div>`;
+}
+
+class State extends Record {
+    setActiveChannel(chan) {
+        this.update({
+            query: '',
+            channel: chan,
+        });
+    }
 }
 
 class Channel extends Record {}
@@ -176,26 +217,30 @@ class Tweet extends Record {
 class TweetStore extends StoreOf(Record) {}
 
 class ChannelItem extends Component {
-    init(record, remover, {actives}, {getShortcutNumber}) {
+    init(record, remover, {actives}, {getShortcutNumber, saveChannels}) {
         this._editing = false;
         this._input = null;
 
         this.remover = remover;
         this.getShortcutNumber = getShortcutNumber;
+        this.saveChannels = saveChannels;
         this.isActive = () => actives.get('channel') === record;
         this.setActive = () => {
             if (this._editing) return;
-
-            actives.update({
-                query: '',
-                channel: record,
-            });
+            actives.setActiveChannel(record);
         }
         actives.addHandler(() => this.render(record.summarize()));
 
         this.bind(record, data => this.render(data));
+
+        dispatcher.addHandler(['Backspace', 'Delete'], () => {
+            if (this.isActive()) {
+                if (confirm(`Delete ${record.get('name')}?`)) {
+                    this.remover();
+                }
+            }
+        });
     }
-    // TODO: editability
     compose(props) {
         if (this._editing) {
             const stopEditing = () => {
@@ -208,6 +253,7 @@ class ChannelItem extends Component {
                 this.record.update({
                     name: this._input,
                 });
+                this.saveChannels();
                 stopEditing();
             }
             return jdom`<div class="channelItem editing ${this.isActive() ? 'solid ' : ''}">
@@ -269,6 +315,7 @@ class ChannelList extends ListOf(ChannelItem) {
                     return '';
                 }
             },
+            saveChannels: () => this.record.save(),
         });
 
         const {actives} = args[1];
@@ -276,47 +323,43 @@ class ChannelList extends ListOf(ChannelItem) {
             this.query = actives.get('query');
             this.render();
         });
+        this.createFromQuery = () => {
+            if (!this.query.trim()) return;
 
-        document.addEventListener('keydown', evt => {
-            switch (evt.key) {
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9': {
-                    const selected = this.record.summarize()[+evt.key - 1]; // 1-index
-                    if (selected) {
-                        actives.update({channel: selected});
-                    }
-                    break;
-                }
-                case '0': {
-                    const selected = this.record.summarize()[10 - 1];
-                    if (selected) {
-                        actives.update({channel: selected});
-                    }
-                    break;
-                }
+            const chan = this.record.create({
+                name: this.query,
+                query: this.query,
+            });
+            actives.setActiveChannel(chan);
+        }
+
+        dispatcher.addHandler(['1', '2', '3', '4', '5', '6', '7', '8', '9'], evt => {
+            const selected = this.record.summarize()[+evt.key - 1]; // 1-index
+            if (selected) {
+                actives.setActiveChannel(selected);
             }
-        })
+        });
+        dispatcher.addHandler('0', evt => {
+            const selected = this.record.summarize()[10 - 1];
+            if (selected) {
+                actives.setActive(selected);
+            }
+        });
+        dispatcher.addHandler(['+', '='], evt => {
+            this.createFromQuery();
+        });
     }
     compose() {
         return jdom`<div class="channelList">
             ${this.nodes}
-            <div class="pseudoChannel channelItem" onclick="${evt => {
-                if (!this.query.trim()) return;
-
-                this.record.create({
-                    name: this.query,
-                    query: this.query,
-                });
-            }}">
-                + ${this.query}
-            </div>
+            ${this.query ? jdom`<div class="pseudoChannel channelItem" onclick="${this.createFromQuery}">
+                <div class="shortcutNumber">
+                    +
+                </div>
+                <div class="channelName">
+                    ${this.query}
+                </div>
+            </div>` : null}
         </div>`;
     }
 }
@@ -454,14 +497,15 @@ class QueryBar extends Component {
         this.input = '';
         this.actives = actives;
 
-        document.addEventListener('keydown', evt => {
-            switch (evt.key) {
-                case '/': {
-                    evt.preventDefault();
-                    this.node.querySelector('.queryBar-input').focus();
-                    break;
-                }
-            }
+        dispatcher.addHandler('/', evt => {
+            this.node.querySelector('.queryBar-input').focus();
+        });
+
+        this.bind(actives, props => {
+            // When the active channel changes, sync the channel's query
+            // with the query displayed in the QueryBar.
+            this.input = props.query || props.channel.get('query');
+            this.render();
         });
     }
     compose() {
@@ -509,7 +553,7 @@ class QueryBar extends Component {
                     <div class="syntaxAction">tweets with link containing "uri"</div>
                 </div>
                 <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>filter</strong>:{media, retweets, links, native_video}</div>
+                    class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
                     <div class="syntaxAction">filter by type</div>
                 </div>
                 <div class="syntaxLine"><div
@@ -544,7 +588,7 @@ class QueryBar extends Component {
 
 class App extends Component {
     init() {
-        this.actives = new Record({
+        this.actives = new State({
             query: '',
             channel: new Channel({
                 name: 'home',
@@ -567,9 +611,7 @@ class App extends Component {
 
         this.actives.addHandler(() => this.fetchTimeline());
         this.channels.fetch().then(() => {
-            this.actives.update({
-                channel: this.channels.summarize()[0],
-            });
+            this.actives.setActiveChannel(this.channels.summarize()[0]);
         });
         this.channels.addHandler(() => this.channels.save());
     }
@@ -611,6 +653,7 @@ class App extends Component {
     }
 }
 
+const dispatcher = new ShortcutDispatcher();
 const app = new App();
 document.getElementById('root').appendChild(app.node);
 

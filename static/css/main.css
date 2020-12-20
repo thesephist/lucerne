@@ -305,6 +305,7 @@ a.queryBar-logo {
     flex-shrink: 1;
     padding: var(--lc-padding);
     background: 0;
+    color: inherit;
 }
 
 .channelItem .channelInput .channelButton {
