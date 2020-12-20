@@ -101,8 +101,8 @@ search := (query, cb) => (
 	}
 
 	params := extendDefaultTweetParams({
-		'q': pctEncode(query)
-		'count': '50'
+		'q': query
+		'result_type': 'recent'
 	})
 
 	CacheGet(

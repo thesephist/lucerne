@@ -5,6 +5,7 @@ std := load('../vendor/std')
 str := load('../vendor/str')
 json := load('../vendor/json')
 quicksort := load('../vendor/quicksort')
+percent := load('../vendor/percent')
 
 ` hmac-sha1 signing `
 hmac := load('hmac')
@@ -20,6 +21,7 @@ join := std.join
 upper := str.upper
 ser := json.ser
 sort := quicksort.sort
+pctEncode := percent.encode
 
 ` Local credentials `
 creds := load('../credentials')
@@ -33,21 +35,6 @@ nonce := () => (
 	piece := () => (std.hex)(10000000000 * rand())
 	piece() + piece() + piece() + piece()
 )
-
-` OAuth authorization header needs to be percent-encoded `
-percentEncodeChar := c => (
-	` should it be encoded? `
-	p := point(c)
-	validPunct? := (c = '.') | (c = '_') | (c = '-') | (c = '~')
-
-	` is numeric, or uppercase ASCII, or lowercase ASCII, or a valid punct `
-	(p > 47 & p < 58) | (p > 64 & p < 91) | (p > 96 & p < 123) | validPunct? :: {
-		true -> c
-		false -> '%' + upper(hex(p))
-	}
-)
-`` TODO: replace this with the better maintained percent.ink encoder from Polyx
-percentEncode := piece => cat(map(piece, percentEncodeChar), '')
 
 ` converting from hex (from HMAC) to base64 `
 char64 := n => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.(n)
@@ -94,15 +81,15 @@ sign := (req, params) => (
 	nonceStr := nonce()
 	timestamp := string(floor(time()))
 
-	queryStrings := map(keys(params), key => key + '=' + percentEncode(params.(key)))
+	queryStrings := map(keys(params), key => key + '=' + pctEncode(params.(key)))
 
 	` OAuth HMAC signing requires that the query strings are sorted lexicographically `
 	sortedParams := sort(join([
-		'oauth_consumer_key=' + percentEncode(ConsumerKey)
-		'oauth_nonce=' + percentEncode(nonceStr)
+		'oauth_consumer_key=' + pctEncode(ConsumerKey)
+		'oauth_nonce=' + pctEncode(nonceStr)
 		'oauth_signature_method=HMAC-SHA1'
 		'oauth_timestamp=' + timestamp
-		'oauth_token=' + percentEncode(OAuthToken)
+		'oauth_token=' + pctEncode(OAuthToken)
 		'oauth_version=1.0'
 	], queryStrings))
 
@@ -110,20 +97,20 @@ sign := (req, params) => (
 	paramString := cat(sortedParams, '&')
 	base := cat([
 		req.method
-		percentEncode(req.url)
-		percentEncode(paramString)
+		pctEncode(req.url)
+		pctEncode(paramString)
 	], '&')
-	signingKey := percentEncode(ConsumerSecret) + '&' + percentEncode(OAuthSecret)
+	signingKey := pctEncode(ConsumerSecret) + '&' + pctEncode(OAuthSecret)
 	signature := base64Encode((hmac.sha1)(base, signingKey))
 
 	` add the signature to the header `
 	oauthParams := [
-		'oauth_consumer_key="' + percentEncode(ConsumerKey) + '"'
-		'oauth_nonce="' + percentEncode(nonceStr) + '"'
-		'oauth_signature="' + percentEncode(signature) + '"'
+		'oauth_consumer_key="' + pctEncode(ConsumerKey) + '"'
+		'oauth_nonce="' + pctEncode(nonceStr) + '"'
+		'oauth_signature="' + pctEncode(signature) + '"'
 		'oauth_signature_method="HMAC-SHA1"'
 		'oauth_timestamp="' + timestamp + '"'
-		'oauth_token="' + percentEncode(OAuthToken) + '"'
+		'oauth_token="' + pctEncode(OAuthToken) + '"'
 		'oauth_version="1.0"'
 	]
 
