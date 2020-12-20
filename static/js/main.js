@@ -34,7 +34,34 @@ function cleanUpURL(url) {
 
 class Channel extends Record {}
 
-class ChannelStore extends StoreOf(Channel) {}
+class ChannelStore extends StoreOf(Channel) {
+    fetch() {
+        return fetch('/channels').then(resp => {
+            if (resp.status !== 200) {
+                alert(`Could not load channels: error ${resp.status}`);
+                return;
+            }
+
+            return resp.json();
+        }).then(json => {
+            this.reset(json.map(ch => new Channel(ch)));
+        }).catch(err => {
+            alert(`Could not load channels: ${err}`);
+        });
+    }
+    save() {
+        return fetch('/channels', {
+            method: 'PUT',
+            body: JSON.stringify(this.serialize()),
+        }).then(resp => {
+            if (resp.status !== 200) {
+                alert(`Could not save channels: error ${resp.status}`);
+            }
+        }).catch(err => {
+            alert(`Could not save channels: ${err}`);
+        });
+    }
+}
 
 class Tweet extends Record {
     date() {
@@ -169,6 +196,8 @@ class ChannelList extends ListOf(ChannelItem) {
         return jdom`<div class="channelList">
             ${this.nodes}
             <div class="pseudoChannel channelItem" onclick="${evt => {
+                if (!this.query.trim()) return;
+
                 this.record.create({
                     name: this.query,
                     query: this.query,
@@ -395,10 +424,6 @@ class App extends Component {
         });
         this.channels = new ChannelStore([
             this.actives.get('channel'),
-            new Channel({
-                name: 'thesephist.com',
-                query: 'thesephist.com'
-            }),
         ]);
         this.tweets = new TweetStore();
 
@@ -412,6 +437,12 @@ class App extends Component {
         this.stats = new Stats();
 
         this.actives.addHandler(() => this.fetchTimeline());
+        this.channels.fetch().then(() => {
+            this.actives.update({
+                channel: this.channels.summarize()[0],
+            });
+        });
+        this.channels.addHandler(() => this.channels.save());
     }
     fetchTimeline() {
         const actives = this.actives.summarize();

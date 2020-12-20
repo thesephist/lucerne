@@ -178,7 +178,8 @@ a.queryBar-logo {
 }
 
 .tweetItem .tweetBody {
-	white-space: pre-line
+	white-space: pre-line;
+	word-break: break-word;
 }
 
 .tweetMedia {
