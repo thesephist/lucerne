@@ -6,6 +6,7 @@ json := load('../vendor/json')
 percent := load('../vendor/percent')
 
 log := std.log
+f := std.format
 cat := std.cat
 map := std.map
 each := std.each
@@ -16,6 +17,7 @@ pctEncode := percent.encode
 
 sig := load('sig')
 cache := load('cache')
+credentials := load('../credentials')
 
 sign := sig.sign
 
@@ -104,6 +106,28 @@ search := (query, cb) => (
 		'q': query
 		'result_type': 'recent'
 	})
+
+	CacheGet(
+		formatKey(request.url, params)
+		cb => req(sign(request, params), evt => evt.type :: {
+			'resp' -> cb(evt.data.body)
+			'error' -> cb(evt.message)
+		})
+		data => cb(data)
+	)
+)
+
+trends := cb => (
+	request := {
+		method: 'GET'
+		url: f('https://api.twitter.com/2/users/{{UserID}}/tweets', credentials)
+	}
+
+	params := {
+		'max_results': '7'
+		'exclude': 'retweets,replies'
+		'tweet.fields': 'attachments,created_at,entities,non_public_metrics,public_metrics,organic_metrics,text'
+	}
 
 	CacheGet(
 		formatKey(request.url, params)

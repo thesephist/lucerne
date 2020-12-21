@@ -21,6 +21,7 @@ twitter := load('lib/twitter')
 
 retrieve := twitter.retrieve
 search := twitter.search
+trends := twitter.trends
 
 server := (http.new)()
 MethodNotAllowed := {status: 405, body: 'method not allowed'}
@@ -53,6 +54,7 @@ addGetAPI := (url, provider) => addRoute(url, params => (req, end) => req.method
 })
 addGetAPI('/timeline', (_, cb) => retrieve(cb))
 addGetAPI('/search', (params, cb) => search(params.query, cb))
+addGetAPI('/trends', (_, cb) => trends(cb))
 
 ` Local data services `
 addRoute('/channels', params => (req, end) => req.method :: {

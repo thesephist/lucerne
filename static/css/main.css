@@ -94,7 +94,6 @@ button.solid:hover {
 
 .queryBar-shade {
     opacity: 0;
-    pointer-events; none;
     background: var(--shade);
     position: fixed;
     top: 0;
@@ -230,7 +229,7 @@ a.queryBar-logo {
     position: absolute;
     top: -1px;
     width: calc(50vw - 400px - .5em);
-    max-width: 300px;
+    max-width: 360px;
 }
 
 .sidebar {
@@ -344,6 +343,62 @@ a.queryBar-logo {
     left: 50%;
     transform: translate(-50%, -50%);
     font-weight: bold;
+}
+
+.trends {
+    padding: .6em 0;
+}
+
+.tweetTrend {
+    width: 100%;
+    font-size: .8em;
+    padding: var(--lc-padding);
+    padding-bottom: 1rem;
+}
+
+.trendMain {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.tweetTrendText {
+    word-break: break-word;
+    max-height: 5em;
+    overflow: hidden;
+    position: relative;
+    margin-right: 6px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: 0;
+}
+
+.tweetTrendText::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3em;
+    background: linear-gradient(to bottom, transparent, var(--background));
+}
+
+.publicMetrics {
+    text-align: right;
+    width: 8em;
+}
+
+.organicMetrics {
+
+}
+
+.organicMetrics .metricRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 
 .modalWrapper {

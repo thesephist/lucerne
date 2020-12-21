@@ -5,6 +5,16 @@ const {
     ListOf,
 } = Torus;
 
+function fmtPercent(n) {
+    return Math.round(n * 100 * 100) / 100 + '%';
+}
+
+function trimToMaxLength(s, max) {
+    if (s.length <= max) return s;
+
+    return s.substr(0, max) + '...';
+}
+
 function fmtDate(date) {
     const delta = (Date.now() - date) / 1000;
     if (delta < 60) {
@@ -268,7 +278,6 @@ class ChannelItem extends Component {
             const stopEditing = () => {
                 this._editing = false;
                 this._input = '';
-                // TODO: save
                 this.render();
             }
             const persist  = () => {
@@ -386,6 +395,76 @@ class ChannelList extends ListOf(ChannelItem) {
     }
 }
 
+class MetricTweet extends Record {
+    date() {
+        return new Date(this.get('created_at'));
+    }
+    relativeDate() {
+        return fmtDate(this.date());
+    }
+    text() {
+        let original = this.get('text');
+        const replacements = [];
+
+        const {
+            hashtags = [],
+            urls = [],
+            mentions = [],
+        } = this.get('entities') || {};
+        for (const hashtag of hashtags) {
+            const {text, start, end} = hashtag;
+            replacements.push({
+                entity: jdom`<a href="${text}">#${text}</a>`,
+                start, end,
+            });
+        }
+        for (const url of urls) {
+            const {expanded_url, start, end} = url;
+            replacements.push({
+                entity: jdom`<a href="${expanded_url}">${cleanUpURL(expanded_url)}</a>`,
+                start, end,
+            });
+        }
+        for (const mention of mentions) {
+            const {screen_name, start, end} = mention;
+            replacements.push({
+                entity: jdom`<a href="${screen_name}">@${screen_name}</a>`,
+                start, end,
+            });
+        }
+
+        replacements.sort((a, b) => {
+            return a.start - b.start;
+        });
+        let lastIdx = 0;
+        let front = [];
+        for (const {entity, start, end} of replacements) {
+            if (start < lastIdx) continue;
+
+            front.push(decodeHTML(original.substring(lastIdx, start)));
+            front.push(entity);
+            lastIdx = end;
+        }
+        front.push(decodeHTML(original.substring(lastIdx, original.length)));
+
+        return front.filter(e => !!e);
+    }
+}
+
+class MetricTweets extends StoreOf(MetricTweet) {
+    fetch() {
+        fetch('/trends')
+            .then(resp => {
+                if (resp.status === 200) {
+                    return resp.json();
+                }
+                return null;
+            })
+            .then(json => this.reset(json.data.map(mt => new MetricTweet(mt))))
+            .catch(err => console.error(err));
+    }
+}
+
 class Sidebar extends Component {
     init(channels, props) {
         this.channelList = new ChannelList(channels, props);
@@ -486,10 +565,74 @@ class Timeline extends Component {
     }
 }
 
+class TweetTrend extends Component {
+    init(record) {
+        this.bind(record, data => this.render(data));
+    }
+    compose(props) {
+        const {
+            public_metrics: publicm,
+            non_public_metrics: privatem,
+        } = props;
+        return jdom`<div class="tweetTrend">
+            <div class="trendMain">
+                <div class="tweetTrendText">
+                    ${this.record.text()}
+                </div>
+                <div class="publicMetrics">
+                    <div class="metricRow">
+                        <strong>${publicm.reply_count}</strong> re
+                    </div>
+                    <div class="metricRow">
+                        <strong>${publicm.quote_count + publicm.retweet_count}</strong> rt/q
+                    </div>
+                    <div class="metricRow">
+                        <strong>${publicm.like_count}
+                        (${fmtPercent(publicm.like_count / privatem.impression_count)})</strong>
+                        fav
+                    </div>
+                </div>
+            </div>
+            <div class="organicMetrics">
+                <div class="metricRow">
+                    <div class="metricNum">${privatem.user_profile_clicks}</div>
+                    <div class="metricName">profile clicks</div>
+                </div>
+                <div class="metricRow">
+                    <div class="metricNum">${privatem.impression_count}</div>
+                    <div class="metricName">impressions</div>
+                </div>
+                ${privatem.url_link_clicks ? jdom`<div class="metricRow">
+                    <div class="metricNum">
+                        ${privatem.url_link_clicks}
+                        (${fmtPercent(privatem.url_link_clicks / privatem.impression_count)})
+                    </div>
+                    <div class="metricName">link clicks</div>
+                </div>` : null}
+            </div>
+        </div>`;
+    }
+}
+
+class TweetTrendList extends ListOf(TweetTrend) {
+    compose() {
+        return jdom`<div class="tweetTrendList">
+            ${this.nodes}
+        </div>`;
+    }
+}
+
 class Trends extends Component {
+    init() {
+        this.metrics = new MetricTweets();
+        this.list = new TweetTrendList(this.metrics);
+
+        this.metrics.fetch();
+    }
     compose() {
         return jdom`<div class="trends">
             <div class="trendsTitle">trends</div>
+            ${this.list.node}
         </div>`;
     }
 }
