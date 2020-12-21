@@ -9,6 +9,7 @@ body {
     --lc-padding: .25em .6em;
     --background: #fafafa;
     --foreground-light: #888;
+    --background-light: #a9a9a9;
     --highlight: rgba(0, 0, 0, .1);
     --shade: rgba(0, 0, 0, .25);
 
@@ -174,7 +175,7 @@ a.queryBar-logo {
     flex-direction: row;
 }
 
-.tweetItem a,
+.tweetItem .tweetBody  a,
 .tweetTrendText a {
     background: var(--highlight);
     padding: 0 .3em;
@@ -195,6 +196,15 @@ a.queryBar-logo {
     font-size: .8em;
 }
 
+.tweetItem .tweetMeta a.dateLink {
+    color: inherit;
+    text-decoration: none;
+}
+
+.tweetItem .tweetMeta a.dateLink:hover {
+    text-decoration: underline;
+}
+
 .tweetItem .tweetMain {
     width: 0;
     flex-shrink: 1;
@@ -205,6 +215,66 @@ a.queryBar-logo {
 .tweetItem .tweetBody {
     white-space: pre-line;
     word-break: break-word;
+}
+
+.tweetItem .tweetUserMention {
+    position: relative;
+    cursor: pointer;
+}
+
+.UserPopup {
+    cursor: initial;
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    background: var(--background);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+    width: 300px;
+    font-weight: normal;
+    font-size: .8em;
+    line-height: 1.4em;
+    word-break: break-word;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+.tweetUserMention:hover .UserPopup {
+    pointer-events: all;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.UserPopup .userPopupHeader {
+    padding: var(--lc-padding);
+    overflow: hidden;
+    padding: .5rem;
+    border-bottom: 1px solid #000;
+    line-height: 1.5em;
+}
+
+.UserPopup .profileImg {
+    border-radius: 50%;
+    float: left;
+    margin-right: .5em;
+}
+
+.UserPopup .name {
+    font-weight: bold;
+}
+
+.UserPopup .location {
+    color: var(--background-light);
+}
+
+.UserPopup .userPopupDescription {
+    padding: var(--lc-padding);
+    padding-top: .5rem;
+}
+
+.UserPopup .userPopupStats {
+    padding: var(--lc-padding);
 }
 
 .tweetMedia {

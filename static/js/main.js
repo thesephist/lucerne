@@ -153,6 +153,10 @@ class ChannelStore extends StoreOf(Channel) {
         });
     }
     save() {
+        if (!this.records.size) {
+            return Promise.resolve();
+        }
+
         return fetch('/channels', {
             method: 'PUT',
             body: JSON.stringify(this.serialize()),
@@ -181,6 +185,9 @@ class Tweet extends Record {
     }
     isQuote() {
         return this.get('is_quote_status') && !!this.get('quoted_status');
+    }
+    webClientURL() {
+        return `https://twitter.com/${this.get('user').screen_name}/status/${this.id}`;
     }
     text() {
         let original = this.get('full_text');
@@ -517,10 +524,39 @@ class Sidebar extends Component {
     }
 }
 
+function UserPopup(user) {
+    return jdom`<div class="UserPopup bordered">
+        <div class="solid userPopupHeader">
+            <img class="bordered profileImg"
+                src="${user.profile_image_url_https}" alt="Profile picture" />
+            <div class="name">
+                ${user.name}
+            </div>
+            <div class="location">
+                @${user.screen_name}
+                ${user.location ? `· ${user.location}` : null}
+            </div>
+        </div>
+        <div class="userPopupDescription">
+            ${user.description}
+        </div>
+        <div class="userPopupStats">
+            <strong>${fmtNumber(user.friends_count)}</strong> following
+            ·
+            <strong>${fmtNumber(user.followers_count)}</strong> followers
+        </div>
+    </div>`;
+}
+
 class TweetItem extends Component {
     init(record, _, actives) {
         this.actives = actives;
         this.showConversation = () => {
+            actives.update({
+                query: `conv:${this.record.id}`,
+            });
+        };
+        this.showReplies = () => {
             actives.update({
                 query: `re:${this.record.id}`,
             });
@@ -528,12 +564,12 @@ class TweetItem extends Component {
         this.bind(record, data => this.render(data));
     }
     compose(props) {
-        // TODO: link to open thread in twitter web app
         // TODO: when clicking on hashtag/mentions, open search
-        // TODO: hover to preview user profile
         const tweetMeta = (tweet) => {
             return jdom`<div class="tweetMeta">
-                ${tweet.relativeDate()}
+                <a class="dateLink" href="${tweet.webClientURL()}" target="_blank">
+                    ${tweet.relativeDate()}
+                </a>
                 <br />
                 ${tweet.get('in_reply_to_status_id') ? '↑' : ''}
             </div>`
@@ -552,12 +588,17 @@ class TweetItem extends Component {
                 ·
                 <span class="${props.favorited ? 'selfFavorited' : ''}">${props.favorite_count} fav</div>
                 ·
-                <button class="tweetConversation" onclick="${this.showConversation}">conv -></button>
+                <button class="tweetConversation" onclick="${this.showConversation}">conv</button>
+                ·
+                <button class="tweetConversation" onclick="${this.showReplies}">replies</button>
             </div>`;
         }
 
         let tweetBody = jdom`<div class="tweetBody">
-            <strong>${props.user.screen_name}</strong>
+            <strong class="tweetUserMention">
+                ${props.user.screen_name}
+                ${UserPopup(props.user)}
+            </strong>
             ${tweetText(this.record)}
         </div>`;
 
@@ -569,9 +610,15 @@ class TweetItem extends Component {
                 ${tweetMeta(retweeted)}
                 <div class="tweetMain">
                     <div class="tweetBody">
-                        <strong>${this.record.get('user').screen_name}</strong>
+                        <strong class="tweetUserMention">
+                            ${this.record.get('user').screen_name}
+                            ${UserPopup(this.record.get('user'))}
+                        </strong>
                         →
-                        <strong>${props.user.screen_name}</strong>
+                        <strong class="tweetUserMention">
+                            ${props.user.screen_name}
+                            ${UserPopup(props.user)}
+                        </strong>
                         ${tweetText(retweeted)}
                     </div>
                     ${tweetStats(retweeted)}
@@ -579,7 +626,10 @@ class TweetItem extends Component {
             </div>`;
         } else if (this.record.isQuote()) {
             tweetBody = jdom`<div class="tweetBody">
-                <strong>${props.user.screen_name}</strong>
+                <strong class="tweetUserMention">
+                    ${props.user.screen_name}
+                    ${UserPopup(props.user)}
+                </strong>
                 ${tweetText(this.record)}
                 ${new TweetItem(new Tweet(props.quoted_status), null, this.actives).node}
             </div>`;
@@ -774,6 +824,10 @@ class QueryBar extends Component {
                     <div class="syntaxAction">tweets with link containing "uri"</div>
                 </div>
                 <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>conv</strong>:id</div>
+                    <div class="syntaxAction">conversations from a given tweet (standalone)</div>
+                </div>
+                <div class="syntaxLine"><div
                     class="syntaxHint"><strong>re</strong>:id</div>
                     <div class="syntaxAction">replies to given tweet (standalone)</div>
                 </div>
@@ -862,10 +916,22 @@ class App extends Component {
             }
             default: {
                 const query = channel.get('query');
+
                 const REPLY_RE = /\bre:(\d+)\b/;
-                const match = query.match(REPLY_RE);
-                if (match != null) {
-                    const tid = match[1];
+                const CONV_RE = /\bconv:(\d+)\b/;
+
+                const re_match = query.match(REPLY_RE);
+                const conv_match = query.match(CONV_RE);
+
+                if (re_match != null) {
+                    const tid = re_match[1];
+                    return fetch(`/conversation/${tid}`)
+                        .then(resp => resp.json())
+                        .then(data => this.tweets.reset(data
+                            .filter(tw => tw.in_reply_to_status_id_str === tid)
+                            .map(tweet => new Tweet(tweet))));
+                } else if (conv_match != null) {
+                    const tid = conv_match[1];
                     return fetch(`/conversation/${tid}`)
                         .then(resp => resp.json())
                         .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
