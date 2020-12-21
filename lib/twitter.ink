@@ -55,27 +55,6 @@ send := (status, cb) => (
 	})
 )
 
-` retrieves a timeline for a user `
-retrieveUser := (screenName, cb) => (
-	request := {
-		method: 'GET'
-		url: 'https://api.twitter.com/1.1/statuses/user_timeline.json'
-	}
-
-	params := extendDefaultTweetParams({
-		'screen_name': screenName
-	})
-
-	CacheGet(
-		formatKey(request.url, params)
-		cb => req(sign(request, params), evt => evt.type :: {
-			'resp' -> cb(evt.data.body)
-			'error' -> cb(evt.message)
-		})
-		data => cb(data)
-	)
-)
-
 ` retrieve the timeline for the logged-in user `
 retrieve := cb => (
 	request := {

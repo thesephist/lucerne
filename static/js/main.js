@@ -45,9 +45,9 @@ function fmtDate(date) {
     } else if (delta < 86400 * 30) {
         return `${~~(delta / 86400)}d`;
     } else if (delta < 86400 * 365) {
-        return `${~~(delta / 86400 * 30)}mo`;
+        return `${~~(delta / 86400 / 30)}mo`;
     } else {
-        return `${~~(delta / 86400 * 365)}y`;
+        return `${~~(delta / 86400 / 365)}y`;
     }
 }
 
@@ -208,7 +208,7 @@ class Tweet extends Record {
         for (const url of urls) {
             const {expanded_url, indices} = url;
             replacements.push({
-                entity: jdom`<a href="${expanded_url}">${cleanUpURL(expanded_url)}</a>`,
+                entity: jdom`<a href="${expanded_url}" target="_blank">${cleanUpURL(expanded_url)}</a>`,
                 indices,
             });
         }
@@ -558,8 +558,8 @@ function UserPopup(user) {
 class TweetItem extends Component {
     init(record, _, actives) {
         this.actives = actives;
-        this.showConversation = () => router.gotoQuery(`conv:${this.record.id}`);
-        this.showReplies = () => router.gotoQuery(`re:${this.record.id}`);
+        this.showConversation = tweet => router.gotoQuery(`conv:${tweet.id}`);
+        this.showReplies = tweet => router.gotoQuery(`re:${tweet.id}`);
         this.bind(record, data => this.render(data));
     }
     compose(props) {
@@ -586,9 +586,9 @@ class TweetItem extends Component {
                 ·
                 <span class="${props.favorited ? 'selfFavorited' : ''}">${props.favorite_count} fav</div>
                 ·
-                <button class="tweetConversation" onclick="${this.showConversation}">conv</button>
+                <button class="tweetConversation" onclick="${() => this.showConversation(tweet)}">conv</button>
                 ·
-                <button class="tweetConversation" onclick="${this.showReplies}">replies</button>
+                <button class="tweetConversation" onclick="${() => this.showReplies(tweet)}">replies</button>
             </div>`;
         }
 
@@ -895,6 +895,8 @@ class App extends Component {
             const url = new URL(window.location.href);
             const searchParams = Object.fromEntries(url.searchParams);
             if (searchParams.q) {
+                document.title = `${searchParams.q} · Lucerne`;
+
                 for (const chan of this.channels) {
                     if (chan.get('query') === searchParams.q) {
                         this.actives.setActiveChannel(chan);
@@ -910,6 +912,9 @@ class App extends Component {
         });
     }
     fetchTimeline() {
+        // wait for channels to load before doing anything
+        if (!this.channels.records.size) return;
+
         const actives = this.actives.summarize();
 
         // if query is non-blank, create a temp channel for the query

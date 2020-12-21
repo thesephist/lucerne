@@ -9,3 +9,11 @@ Lucerne uses GNU Make for development scripts.
 - `make` or `make run` starts an auto-restarting development server that restarts when any relevant files are changed.
 - `make fmt` or `make f` auto-formats all Ink files with [inkfmt](https://github.com/thesephist/inkfmt). You need to have inkfmt installed on the system for this to work.
 
+## Unfinished tasks
+
+- [ ] Paginated infinite scrolling/loading
+- [ ] Reordering channels
+- [ ] Fans
+- [ ] User profile lightbox
+- [ ] User popups on mentions in-line in Tweets
+

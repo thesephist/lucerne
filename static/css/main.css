@@ -175,7 +175,7 @@ a.queryBar-logo {
     flex-direction: row;
 }
 
-.tweetItem .tweetBody  a,
+.tweetItem .tweetBody  > a,
 .tweetTrendText a {
     background: var(--highlight);
     padding: 0 .3em;
