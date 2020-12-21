@@ -9,6 +9,18 @@ function fmtPercent(n) {
     return Math.round(n * 100 * 100) / 100 + '%';
 }
 
+function fmtNumber(n) {
+    let s = '';
+    while (n > 1000) {
+        const front = 1000 * Math.floor(n / 1000);
+        const back = n - front;
+        s = back.toString().padStart(3, '0') + ',' + s;
+        n = front / 1000;
+    }
+    s = (n + ',' + s);
+    return s.substr(s, s.length - 1);
+}
+
 function trimToMaxLength(s, max) {
     if (s.length <= max) return s;
 
@@ -449,6 +461,9 @@ class MetricTweet extends Record {
 
         return front.filter(e => !!e);
     }
+    rawText() {
+        return Torus.render(null, null, jdom`<div>${this.text()}</div>`).textContent;
+    }
 }
 
 class MetricTweets extends StoreOf(MetricTweet) {
@@ -480,6 +495,9 @@ class TweetItem extends Component {
     init(record) {
         this.bind(record, data => this.render(data));
     }
+    // TODO: threading.
+    //  when you click on a tweet, what's the best interface for exploring replies to it?
+    //  (might involve v2 conversation APIs instead?)
     compose(props) {
         const tweetText = [
             ...this.record.text(),
@@ -576,15 +594,16 @@ class TweetTrend extends Component {
         } = props;
         return jdom`<div class="tweetTrend">
             <div class="trendMain">
-                <div class="tweetTrendText">
+                <div class="tweetTrendText" title="${this.record.rawText()}">
+                    <span class="date">${this.record.relativeDate()}</span>
+                    ·
                     ${this.record.text()}
                 </div>
                 <div class="publicMetrics">
                     <div class="metricRow">
-                        <strong>${publicm.reply_count}</strong> re
-                    </div>
-                    <div class="metricRow">
-                        <strong>${publicm.quote_count + publicm.retweet_count}</strong> rt/q
+                        <strong>${fmtNumber(publicm.reply_count)}</strong> re
+                        ·
+                        <strong>${fmtNumber(publicm.quote_count + publicm.retweet_count)}</strong> rt/q
                     </div>
                     <div class="metricRow">
                         <strong>${publicm.like_count}
@@ -594,20 +613,18 @@ class TweetTrend extends Component {
                 </div>
             </div>
             <div class="organicMetrics">
-                <div class="metricRow">
-                    <div class="metricNum">${privatem.user_profile_clicks}</div>
-                    <div class="metricName">profile clicks</div>
+                <div class="metricRow half">
+                    <strong>${fmtNumber(privatem.impression_count)}</strong> impressions
                 </div>
-                <div class="metricRow">
-                    <div class="metricNum">${privatem.impression_count}</div>
-                    <div class="metricName">impressions</div>
+                <div class="metricRow half">
+                    <strong>${fmtNumber(privatem.user_profile_clicks)}</strong> profile clicks
                 </div>
                 ${privatem.url_link_clicks ? jdom`<div class="metricRow">
-                    <div class="metricNum">
-                        ${privatem.url_link_clicks}
+                    <strong>
+                        ${fmtNumber(privatem.url_link_clicks)}
                         (${fmtPercent(privatem.url_link_clicks / privatem.impression_count)})
-                    </div>
-                    <div class="metricName">link clicks</div>
+                    </strong>
+                    link clicks
                 </div>` : null}
             </div>
         </div>`;
@@ -615,6 +632,7 @@ class TweetTrend extends Component {
 }
 
 class TweetTrendList extends ListOf(TweetTrend) {
+    // TODO: paginate to show up to 20 recent
     compose() {
         return jdom`<div class="tweetTrendList">
             ${this.nodes}

@@ -366,13 +366,17 @@ a.queryBar-logo {
 
 .tweetTrendText {
     word-break: break-word;
-    max-height: 5em;
+    max-height: 3em;
     overflow: hidden;
     position: relative;
     margin-right: 6px;
     flex-grow: 1;
     flex-shrink: 1;
     width: 0;
+}
+
+.tweetTrendText .date {
+    color: var(--foreground-light);
 }
 
 .tweetTrendText::after {
@@ -382,7 +386,7 @@ a.queryBar-logo {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 3em;
+    height: calc(100% - 1em);
     background: linear-gradient(to bottom, transparent, var(--background));
 }
 
@@ -392,13 +396,17 @@ a.queryBar-logo {
 }
 
 .organicMetrics {
-
+    overflow: hidden;
 }
 
 .organicMetrics .metricRow {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    float: left;
+    box-sizing: border-box;
+    line-height: 1.5em;
+}
+
+.organicMetrics .metricRow.half {
+    width: 50%;
 }
 
 .modalWrapper {
