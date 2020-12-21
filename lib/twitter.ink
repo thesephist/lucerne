@@ -13,6 +13,7 @@ each := std.each
 reduce := std.reduce
 sort := quicksort.sort
 deJSON := json.de
+serJSON := json.ser
 pctEncode := percent.encode
 
 sig := load('sig')
@@ -96,6 +97,7 @@ retrieve := cb => (
 
 ` search Twitter for a non-exhaustive match against queries `
 ` NOTE: on building queries, see https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-rule `
+` TODO: migrate to v2 full archive search: https://developer.twitter.com/en/docs/twitter-api/tweets/full-archive-search/api-reference/get-tweets-search-all`
 search := (query, cb) => (
 	request := {
 		method: 'GET'
@@ -115,6 +117,89 @@ search := (query, cb) => (
 		})
 		data => cb(data)
 	)
+)
+
+conversation := (tweetID, cb) => (
+	getConversationID := (tweetID, cb) => (
+		request := {
+			method: 'GET'
+			url: f('https://api.twitter.com/2/tweets/{{0}}', [tweetID])
+		}
+		params := {
+			'tweet.fields': 'conversation_id'
+		}
+		` TODO: turn this wrapper into a fn `
+		CacheGet(
+			formatKey(request.url, params)
+			cb => req(sign(request, params), evt => evt.type :: {
+				'resp' -> cb(evt.data.body)
+				'error' -> cb(evt.message)
+			})
+			data => cb(data)
+		)
+	)
+
+	getTweetsInConversation := (conversationID, cb) => (
+		request := {
+			method: 'GET'
+			url: 'https://api.twitter.com/2/tweets/search/recent'
+		}
+		params := {
+			'max_results': '25'
+			'query': f('conversation_id:{{0}}', [conversationID])
+		}
+		CacheGet(
+			formatKey(request.url, params)
+			cb => req(sign(request, params), evt => evt.type :: {
+				'resp' -> cb(evt.data.body)
+				'error' -> cb(evt.message)
+			})
+			data => cb(data)
+		)
+	)
+
+	lookupTweetsByID := (ids, cb) => (
+		request := {
+			method: 'GET'
+			url: 'https://api.twitter.com/1.1/statuses/lookup.json'
+		}
+		params := {
+			'id': cat(ids, ',')
+			` not directly extending v1.1 default params as the
+				count param does not apply here `
+			'tweet_mode': 'extended'
+			'exclude_replies': 'false'
+			'include_rts': '0'
+		}
+		CacheGet(
+			formatKey(request.url, params)
+			cb => req(sign(request, params), evt => evt.type :: {
+				'resp' -> cb(evt.data.body)
+				'error' -> cb(evt.message)
+			})
+			data => cb(data)
+		)
+	)
+
+	Err := msg => serJSON({error: 'Could not get conversation: ' + msg})
+	getConversationID(tweetID, resp => (
+		jsonResp := deJSON(resp) :: {
+			() -> cb(Err(resp))
+			_ -> jsonResp.data :: {
+				() -> cb(Err('no tweet with that ID'))
+				_ -> getTweetsInConversation(jsonResp.data.'conversation_id', resp => (
+					jsonResp := deJSON(resp) :: {
+						() -> cb(Err('invalid response from Twitter'))
+						_ -> data := jsonResp.data :: {
+							() -> cb('[]')
+							[] -> cb('[]')
+							_ -> lookupTweetsByID(map(jsonResp.data, tw => tw.id), cb)
+						}
+					}
+				))
+			}
+		}
+	))
 )
 
 trends := cb => (

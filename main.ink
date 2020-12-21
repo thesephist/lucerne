@@ -21,6 +21,7 @@ twitter := load('lib/twitter')
 
 retrieve := twitter.retrieve
 search := twitter.search
+conversation := twitter.conversation
 trends := twitter.trends
 
 server := (http.new)()
@@ -54,6 +55,7 @@ addGetAPI := (url, provider) => addRoute(url, params => (req, end) => req.method
 })
 addGetAPI('/timeline', (_, cb) => retrieve(cb))
 addGetAPI('/search', (params, cb) => search(params.query, cb))
+addGetAPI('/conversation/*tweetID', (params, cb) => conversation(params.tweetID, cb))
 addGetAPI('/trends', (_, cb) => trends(cb))
 
 ` Local data services `
