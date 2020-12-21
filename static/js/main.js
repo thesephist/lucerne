@@ -3,6 +3,7 @@ const {
     StoreOf,
     Component,
     ListOf,
+    Router,
 } = Torus;
 
 const HOME_QUERY = 'home_timeline';
@@ -296,7 +297,7 @@ class ChannelItem extends Component {
         this.isActive = () => actives.get('channel') === record;
         this.setActive = () => {
             if (this._editing) return;
-            actives.setActiveChannel(record);
+            router.gotoChannel(record);
         }
         this.startEditing = () => {
             this._editing = true;
@@ -406,13 +407,13 @@ class ChannelList extends ListOf(ChannelItem) {
                 name: this.query,
                 query: this.query,
             });
-            actives.setActiveChannel(chan);
+            router.gotoChannel(chan);
         }
 
         dispatcher.addHandler(['1', '2', '3', '4', '5', '6', '7', '8', '9'], evt => {
             const selected = this.record.summarize()[+evt.key - 1]; // 1-index
             if (selected) {
-                actives.setActiveChannel(selected);
+                router.gotoChannel(selected);
             }
         });
         dispatcher.addHandler('0', evt => {
@@ -551,16 +552,8 @@ function UserPopup(user) {
 class TweetItem extends Component {
     init(record, _, actives) {
         this.actives = actives;
-        this.showConversation = () => {
-            actives.update({
-                query: `conv:${this.record.id}`,
-            });
-        };
-        this.showReplies = () => {
-            actives.update({
-                query: `re:${this.record.id}`,
-            });
-        };
+        this.showConversation = () => router.gotoQuery(`conv:${this.record.id}`);
+        this.showReplies = () => router.gotoQuery(`re:${this.record.id}`);
         this.bind(record, data => this.render(data));
     }
     compose(props) {
@@ -792,9 +785,7 @@ class QueryBar extends Component {
                 onkeydown="${evt => {
                     switch (evt.key) {
                         case 'Enter': {
-                            this.actives.update({
-                                query: this.input.trim(),
-                            });
+                            router.gotoQuery(this.input.trim());
                             evt.target.blur();
                             break;
                         }
@@ -806,9 +797,7 @@ class QueryBar extends Component {
                 }}"/>
             <button class="solid queryBar-button"
                 onclick="${evt => {
-                    this.actives.update({
-                        query: this.input.trim(),
-                    });
+                    router.gotoQuery(this.input.trim());
                 }}">-></button>
             <div class="bordered helper">
                 <div class="syntaxLine">
@@ -870,7 +859,7 @@ class QueryBar extends Component {
 }
 
 class App extends Component {
-    init() {
+    init(router) {
         this.actives = new State({
             query: '',
             channel: new Channel({
@@ -892,9 +881,29 @@ class App extends Component {
 
         this.actives.addHandler(() => this.fetchTimeline());
         this.channels.fetch().then(() => {
-            this.actives.setActiveChannel(this.channels.summarize()[0]);
+            // We can't properly resolve a deep link until when all the channels
+            // have loaded, so we fire the router event again here.
+            router.emitEvent();
         });
         this.channels.addHandler(() => this.channels.save());
+
+        this.bind(router, ([name]) => {
+            const url = new URL(window.location.href);
+            const searchParams = Object.fromEntries(url.searchParams);
+            if (searchParams.q) {
+                for (const chan of this.channels) {
+                    if (chan.get('query') === searchParams.q) {
+                        this.actives.setActiveChannel(chan);
+                        return;
+                    }
+                }
+                this.actives.update({
+                    query: searchParams.q,
+                });
+            } else {
+                router.gotoChannel(this.channels.summarize()[0]);
+            }
+        });
     }
     fetchTimeline() {
         const actives = this.actives.summarize();
@@ -955,7 +964,20 @@ class App extends Component {
     }
 }
 
+class LucerneRouter extends Router {
+    gotoQuery(query) {
+        this.go(`/?q=${encodeURIComponent(query)}`);
+    }
+    gotoChannel(chan) {
+        this.go(`/?q=${encodeURIComponent(chan.get('query'))}`);
+    }
+}
+
+const router = new LucerneRouter({
+    default: '/',
+});
+
 const dispatcher = new ShortcutDispatcher();
-const app = new App();
+const app = new App(router);
 document.getElementById('root').appendChild(app.node);
 
