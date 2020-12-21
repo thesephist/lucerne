@@ -64,17 +64,33 @@ class ShortcutDispatcher {
     }
 }
 
-function Modal(title, children) {
-    return jdom`<div class="modalWrapper">
-        <div class="modal">
-            <div class="modalTitle">
-                ${title}
+class Modal extends Component {
+    init(title, children) {
+        this.title = title;
+        this.children = children;
+
+        this.closer = () => document.body.removeChild(this.node);
+
+        this.render(); // defines this.node
+        document.body.appendChild(this.node);
+    }
+    compose() {
+        return jdom`<div class="modalWrapper" onclick="${evt => {
+            if (evt.target === this.node) {
+                this.closer();
+            }
+        }}">
+            <div class="bordered modal">
+                <div class="solid modalTitle">
+                    <div class="modalName">${this.title}</div>
+                    <button class="solid modalClose" onclick="${this.closer}">close</button>
+                </div>
+                <div class="modalBody">
+                    ${this.children}
+                </div>
             </div>
-            <div class="modalBody">
-                ${children}
-            </div>
-        </div>
-    </div>`;
+        </div>`;
+    }
 }
 
 class State extends Record {
@@ -192,18 +208,24 @@ class Tweet extends Record {
         const media = entities.media;
         if (!media) return [];
 
+        const openModal = url => {
+            new Modal('Tweet media', jdom`<img class="tweetImgPreview" src="${url}" />`);
+        }
+
         return media.map(m => {
             switch (m.type) {
                 case 'photo':
                 case 'animated_gif': {
                     return jdom`<img load="lazy"
                         class="bordered tweetImg"
+                        onclick="${() => openModal(m.media_url_https)}"
                         src="${m.media_url_https}" />`;
                 }
                 case 'video': {
                     // TODO: link to actual video
                     return jdom`<img load="lazy"
                         class="bordered tweetImg"
+                        onclick="${() => openModal(m.media_url_https)}"
                         src="${m.media_url_https}" />`;
                 }
                 default:
