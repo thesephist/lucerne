@@ -895,14 +895,15 @@ class App extends Component {
             const url = new URL(window.location.href);
             const searchParams = Object.fromEntries(url.searchParams);
             if (searchParams.q) {
-                document.title = `${searchParams.q} · Lucerne`;
-
                 for (const chan of this.channels) {
                     if (chan.get('query') === searchParams.q) {
+                        document.title = `${chan.get('name')} · Lucerne`;
                         this.actives.setActiveChannel(chan);
                         return;
                     }
                 }
+
+                document.title = `${searchParams.q} · Lucerne`;
                 this.actives.update({
                     query: searchParams.q,
                 });
