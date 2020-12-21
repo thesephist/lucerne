@@ -219,6 +219,10 @@ a.queryBar-logo {
     opacity: .8;
 }
 
+.tweetImgPreview {
+    display: block;
+}
+
 .tweetStats {
     color: var(--foreground-light);
     font-size: .8em;

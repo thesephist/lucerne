@@ -27,6 +27,10 @@ function trimToMaxLength(s, max) {
     return s.substr(0, max) + '...';
 }
 
+function substringByCodePoint(s, start, end) {
+    return [...s].slice(start, end - start).join('');
+}
+
 function fmtDate(date) {
     const delta = (Date.now() - date) / 1000;
     if (delta < 60) {
@@ -216,11 +220,11 @@ class Tweet extends Record {
             const [start, end] = indices;
             if (start < lastIdx) continue;
 
-            front.push(decodeHTML(original.substring(lastIdx, start)));
+            front.push(decodeHTML(substringByCodePoint(original, lastIdx, start)));
             front.push(entity);
             lastIdx = end;
         }
-        front.push(decodeHTML(original.substring(lastIdx, original.length)));
+        front.push(decodeHTML(substringByCodePoint(original, lastIdx, original.length)));
 
         return front.filter(e => !!e);
     }
@@ -453,11 +457,11 @@ class MetricTweet extends Record {
         for (const {entity, start, end} of replacements) {
             if (start < lastIdx) continue;
 
-            front.push(decodeHTML(original.substring(lastIdx, start)));
+            front.push(decodeHTML(substringByCodePoint(original, lastIdx, start)));
             front.push(entity);
             lastIdx = end;
         }
-        front.push(decodeHTML(original.substring(lastIdx, original.length)));
+        front.push(decodeHTML(substringByCodePoint(original, lastIdx, original.length)));
 
         return front.filter(e => !!e);
     }
