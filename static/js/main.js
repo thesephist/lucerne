@@ -198,7 +198,10 @@ class Tweet extends Record {
         for (const hashtag of hashtags) {
             const {text, indices} = hashtag;
             replacements.push({
-                entity: jdom`<a href="${text}">#${text}</a>`,
+                entity: jdom`<a href="#" onclick="${evt => {
+                    evt.preventDefault();
+                    router.gotoQuery('#' + text);
+                }}">#${text}</a>`,
                 indices,
             });
         }
@@ -212,7 +215,10 @@ class Tweet extends Record {
         for (const mention of user_mentions) {
             const {screen_name, indices} = mention;
             replacements.push({
-                entity: jdom`<a href="${screen_name}">@${screen_name}</a>`,
+                entity: jdom`<a href="https://twitter.com/${screen_name}" onclick="${evt => {
+                    evt.preventDefault();
+                    router.gotoQuery('from:' + screen_name);
+                }}">@${screen_name}</a>`,
                 indices,
             });
         }
@@ -557,8 +563,7 @@ class TweetItem extends Component {
         this.bind(record, data => this.render(data));
     }
     compose(props) {
-        // TODO: when clicking on hashtag/mentions, open search
-        const tweetMeta = (tweet) => {
+        const tweetMeta = tweet => {
             return jdom`<div class="tweetMeta">
                 <a class="dateLink" href="${tweet.webClientURL()}" target="_blank">
                     ${tweet.relativeDate()}
@@ -567,14 +572,14 @@ class TweetItem extends Component {
                 ${tweet.get('in_reply_to_status_id') ? '↑' : ''}
             </div>`
         }
-        const tweetText = (tweet) => {
+        const tweetText = tweet => {
             return [
                 ...tweet.text(),
                 jdom`<div class="tweetMedia">${tweet.media()}</div>`,
             ];
         }
 
-        const tweetStats = (tweet) => {
+        const tweetStats = tweet => {
             const props = tweet.summarize();
             return jdom`<div class="tweetStats">
                 <span class="${props.retweeted ? 'selfRetweeted' : ''}">${props.retweet_count} rt</span>
@@ -587,11 +592,19 @@ class TweetItem extends Component {
             </div>`;
         }
 
+        const mention = user => {
+            return jdom`<strong class="tweetUserMention" onclick="${evt => {
+                if (evt.target === evt.currentTarget) {
+                    router.gotoQuery('from:' + user.screen_name);
+                }
+            }}">
+                ${user.screen_name}
+                ${UserPopup(user)}
+            </strong>`;
+        }
+
         let tweetBody = jdom`<div class="tweetBody">
-            <strong class="tweetUserMention">
-                ${props.user.screen_name}
-                ${UserPopup(props.user)}
-            </strong>
+            ${mention(props.user)}
             ${tweetText(this.record)}
         </div>`;
 
@@ -603,15 +616,9 @@ class TweetItem extends Component {
                 ${tweetMeta(retweeted)}
                 <div class="tweetMain">
                     <div class="tweetBody">
-                        <strong class="tweetUserMention">
-                            ${this.record.get('user').screen_name}
-                            ${UserPopup(this.record.get('user'))}
-                        </strong>
+                        ${mention(this.record.get('user'))}
                         →
-                        <strong class="tweetUserMention">
-                            ${props.user.screen_name}
-                            ${UserPopup(props.user)}
-                        </strong>
+                        ${mention(props.user)}
                         ${tweetText(retweeted)}
                     </div>
                     ${tweetStats(retweeted)}
@@ -619,10 +626,7 @@ class TweetItem extends Component {
             </div>`;
         } else if (this.record.isQuote()) {
             tweetBody = jdom`<div class="tweetBody">
-                <strong class="tweetUserMention">
-                    ${props.user.screen_name}
-                    ${UserPopup(props.user)}
-                </strong>
+                ${mention(props.user)}
                 ${tweetText(this.record)}
                 ${new TweetItem(new Tweet(props.quoted_status), null, this.actives).node}
             </div>`;
