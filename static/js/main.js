@@ -5,6 +5,8 @@ const {
     ListOf,
 } = Torus;
 
+const HOME_QUERY = 'home_timeline';
+
 function fmtPercent(n) {
     return Math.round(n * 100 * 100) / 100 + '%';
 }
@@ -28,7 +30,7 @@ function trimToMaxLength(s, max) {
 }
 
 function substringByCodePoint(s, start, end) {
-    return [...s].slice(start, end - start).join('');
+    return [...s].slice(start, end).join('');
 }
 
 function fmtDate(date) {
@@ -128,7 +130,11 @@ class State extends Record {
     }
 }
 
-class Channel extends Record {}
+class Channel extends Record {
+    isHome() {
+        return this.get('query') === HOME_QUERY;
+    }
+}
 
 class ChannelStore extends StoreOf(Channel) {
     fetch() {
@@ -160,6 +166,9 @@ class ChannelStore extends StoreOf(Channel) {
 }
 
 class Tweet extends Record {
+    constructor(props) {
+        super(props.id_str, props);
+    }
     date() {
         return new Date(this.get('created_at'));
     }
@@ -262,7 +271,11 @@ class Tweet extends Record {
     }
 }
 
-class TweetStore extends StoreOf(Record) {}
+class TweetStore extends StoreOf(Record) {
+    get comparator() {
+        return tweet => -tweet.date();
+    }
+}
 
 class ChannelItem extends Component {
     init(record, remover, {actives}, {getShortcutNumber, saveChannels}) {
@@ -281,13 +294,15 @@ class ChannelItem extends Component {
 
         this.bind(record, data => this.render(data));
 
-        dispatcher.addHandler(['Backspace', 'Delete'], () => {
-            if (this.isActive()) {
-                if (confirm(`Delete ${record.get('name')}?`)) {
-                    this.remover();
+        if (!this.record.isHome()) {
+            dispatcher.addHandler(['Backspace', 'Delete'], () => {
+                if (this.isActive()) {
+                    if (confirm(`Delete ${record.get('name')}?`)) {
+                        this.remover();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
     compose(props) {
         if (this._editing) {
@@ -496,20 +511,44 @@ class Sidebar extends Component {
 }
 
 class TweetItem extends Component {
-    init(record) {
+    init(record, _, actives) {
+        this.actives = actives;
+        this.showConversation = () => {
+            actives.update({
+                query: `re:${this.record.id}`,
+            });
+        };
         this.bind(record, data => this.render(data));
     }
-    // TODO: threading.
-    //  when you click on a tweet, what's the best interface for exploring replies to it?
-    //  (might involve v2 conversation APIs instead?)
     compose(props) {
-        const tweetText = [
-            ...this.record.text(),
-            jdom`<div class="tweetMedia">${this.record.media()}</div>`,
-        ];
+        const tweetMeta = (tweet) => {
+            return jdom`<div class="tweetMeta">
+                ${tweet.relativeDate()}
+                <br />
+                ${tweet.get('in_reply_to_status_id') ? '↑' : ''}
+            </div>`
+        }
+        const tweetText = (tweet) => {
+            return [
+                ...tweet.text(),
+                jdom`<div class="tweetMedia">${tweet.media()}</div>`,
+            ];
+        }
+
+        const tweetStats = (tweet) => {
+            const props = tweet.summarize();
+            return jdom`<div class="tweetStats">
+                ${props.retweet_count} rt
+                ·
+                ${props.favorite_count} fav
+                ·
+                <button class="tweetConversation" onclick="${this.showConversation}">conv -></button>
+            </div>`;
+        }
+
         let tweetBody = jdom`<div class="tweetBody">
             <strong>${props.user.screen_name}</strong>
-            ${tweetText}
+            ${tweetText(this.record)}
         </div>`;
 
         if (this.record.isRetweet()) {
@@ -517,47 +556,30 @@ class TweetItem extends Component {
             const props = retweeted.summarize();
 
             return jdom`<div class="tweetItem ${retweeted.get('user').following ? '' : 'notFollowing'}">
-                <div class="tweetMeta">
-                    ${retweeted.relativeDate()}
-                    <br />
-                    ${props.in_reply_to_status_id ? '↑' : ''}
-                </div>
+                ${tweetMeta(retweeted)}
                 <div class="tweetMain">
                     <div class="tweetBody">
                         <strong>${this.record.get('user').screen_name}</strong>
                         →
                         <strong>${props.user.screen_name}</strong>
-                        ${retweeted.text()}
-                        <div class="tweetMedia">${retweeted.media()}</div>
+                        ${tweetText(retweeted)}
                     </div>
-                    <div class="tweetStats">
-                        ${props.retweet_count} rt
-                        ·
-                        ${props.favorite_count} fav
-                    </div>
+                    ${tweetStats(retweeted)}
                 </div>
             </div>`;
         } else if (this.record.isQuote()) {
             tweetBody = jdom`<div class="tweetBody">
                 <strong>${props.user.screen_name}</strong>
-                ${tweetText}
-                ${new TweetItem(new Tweet(props.quoted_status)).node}
+                ${tweetText(this.record)}
+                ${new TweetItem(new Tweet(props.quoted_status), null, this.actives).node}
             </div>`;
         }
 
         return jdom`<div class="tweetItem ${props.user.following ? '' : 'notFollowing'}">
-            <div class="tweetMeta">
-                ${this.record.relativeDate()}
-                <br />
-                ${props.in_reply_to_status_id ? '↑' : ''}
-            </div>
+        ${tweetMeta(this.record)}
             <div class="tweetMain">
                 ${tweetBody}
-                <div class="tweetStats">
-                    ${props.retweet_count} rt
-                    ·
-                    ${props.favorite_count} fav
-                </div>
+                ${tweetStats(this.record)}
             </div>
         </div>`;
     }
@@ -572,13 +594,13 @@ class TweetList extends ListOf(TweetItem) {
 }
 
 class Timeline extends Component {
-    init(tweets) {
+    init(tweets, actives) {
         // TODO: add options:
         // - hide notFollowing tweets
         // - hide retweets
         // - hide image tweets
         // TODO: option to refresh feed / force-refresh feed
-        this.tweetList = new TweetList(tweets);
+        this.tweetList = new TweetList(tweets, actives);
     }
     compose() {
         return jdom`<div class="bordered timeline">
@@ -713,10 +735,11 @@ class QueryBar extends Component {
                             this.actives.update({
                                 query: this.input.trim(),
                             });
+                            evt.target.blur();
                             break;
                         }
                         case 'Escape': {
-                            document.activeElement.blur();
+                            evt.target.blur();
                             break;
                         }
                     }
@@ -739,6 +762,10 @@ class QueryBar extends Component {
                 <div class="syntaxLine"><div
                     class="syntaxHint"><strong>url</strong>:uri</div>
                     <div class="syntaxAction">tweets with link containing "uri"</div>
+                </div>
+                <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>re</strong>:id</div>
+                    <div class="syntaxAction">replies to given tweet (standalone)</div>
                 </div>
                 <div class="syntaxLine"><div
                     class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
@@ -780,12 +807,10 @@ class App extends Component {
             query: '',
             channel: new Channel({
                 name: 'home',
-                query: 'home_timeline',
+                query: HOME_QUERY,
             }),
         });
-        this.channels = new ChannelStore([
-            this.actives.get('channel'),
-        ]);
+        this.channels = new ChannelStore([]);
         this.tweets = new TweetStore();
 
         this.queryBar = new QueryBar({
@@ -794,7 +819,7 @@ class App extends Component {
         this.sidebar = new Sidebar(this.channels, {
             actives: this.actives,
         });
-        this.timeline = new Timeline(this.tweets);
+        this.timeline = new Timeline(this.tweets, this.actives);
         this.stats = new Stats();
 
         this.actives.addHandler(() => this.fetchTimeline());
@@ -817,15 +842,25 @@ class App extends Component {
 
         this.tweets.reset([]);
         switch (channel.get('query')) {
-            case 'home_timeline': {
+            case HOME_QUERY: {
                 return fetch('/timeline')
                     .then(resp => resp.json())
                     .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
             }
             default: {
-                return fetch(`/search?query=${encodeURIComponent(channel.get('query'))}`)
-                    .then(resp => resp.json())
-                    .then(data => this.tweets.reset(data.statuses.map(tweet => new Tweet(tweet))));
+                const query = channel.get('query');
+                const REPLY_RE = /\bre:(\d+)\b/;
+                const match = query.match(REPLY_RE);
+                if (match != null) {
+                    const tid = match[1];
+                    return fetch(`/conversation/${tid}`)
+                        .then(resp => resp.json())
+                        .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
+                } else {
+                    return fetch(`/search?query=${encodeURIComponent(channel.get('query'))}`)
+                        .then(resp => resp.json())
+                        .then(data => this.tweets.reset(data.statuses.map(tweet => new Tweet(tweet))));
+                }
             }
         }
     }
