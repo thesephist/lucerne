@@ -1,6 +1,7 @@
 ` twitter API adapter `
 
 std := load('../vendor/std')
+str := load('../vendor/str')
 quicksort := load('../vendor/quicksort')
 json := load('../vendor/json')
 percent := load('../vendor/percent')
@@ -10,7 +11,10 @@ f := std.format
 cat := std.cat
 map := std.map
 each := std.each
+filter := std.filter
 reduce := std.reduce
+some := std.some
+split := str.split
 sort := quicksort.sort
 deJSON := json.de
 serJSON := json.ser
@@ -75,9 +79,20 @@ retrieve := cb => (
 )
 
 ` search Twitter for a non-exhaustive match against queries `
-` NOTE: on building queries, see https://developer.twitter.com/en/docs/twitter-api/tweets/search/integrate/build-a-rule `
-` TODO: migrate to v2 full archive search: https://developer.twitter.com/en/docs/twitter-api/tweets/full-archive-search/api-reference/get-tweets-search-all`
+` TODO: migrate to 30-day premium or v2 full archive search:
+	https://developer.twitter.com/en/docs/twitter-api/tweets/full-archive-search/api-reference/get-tweets-search-all`
 search := (query, cb) => (
+	pcs := split(query, ' ')
+	hasTop? := some(map(pcs, pc => pc = 'sort:top'))
+	query := (hasTop? :: {
+		false -> query
+		_ -> cat(filter(map(pcs, pc => pc :: {
+			'sort:top' -> ''
+			'sort:recent' -> ''
+			_ -> pc
+		}), pc => ~(pc = '')), ' ')
+	})
+
 	request := {
 		method: 'GET'
 		url: 'https://api.twitter.com/1.1/search/tweets.json'
@@ -85,7 +100,10 @@ search := (query, cb) => (
 
 	params := extendDefaultTweetParams({
 		'q': query
-		'result_type': 'recent'
+		'result_type': hasTop? :: {
+			true -> 'popular'
+			false -> 'recent'
+		}
 	})
 
 	CacheGet(
