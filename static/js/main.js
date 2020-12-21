@@ -61,6 +61,7 @@ function cleanUpURL(url) {
 }
 
 // Global singleton to manage keyboard shortcuts
+// TODO: global shortcut dictionary somewhere in the UI
 class ShortcutDispatcher {
     constructor() {
         this.shortcuts = {};
@@ -290,6 +291,12 @@ class ChannelItem extends Component {
             if (this._editing) return;
             actives.setActiveChannel(record);
         }
+        this.startEditing = () => {
+            this._editing = true;
+            this._input = this.record.get('name');
+            this.render();
+            this.node.querySelector('input').focus();
+        }
         actives.addHandler(() => this.render(record.summarize()));
 
         this.bind(record, data => this.render(data));
@@ -300,6 +307,11 @@ class ChannelItem extends Component {
                     if (confirm(`Delete ${record.get('name')}?`)) {
                         this.remover();
                     }
+                }
+            });
+            dispatcher.addHandler(['[', ']'], () => {
+                if (this.isActive()) {
+                    this.startEditing();
                 }
             });
         }
@@ -345,12 +357,7 @@ class ChannelItem extends Component {
             onclick="${this.setActive}">
             <div class="channelButtons" onclick="${evt => evt.stopPropagation()}">
                 <button class="channelButton" onclick="${this.remover}">del</button>
-                <button class="channelButton" onclick="${evt => {
-                    this._editing = true;
-                    this._input = props.name;
-                    this.render();
-                    this.node.querySelector('input').focus();
-                }}">edit</button>
+                <button class="channelButton" onclick="${this.startEditing}">edit</button>
                 <button class="channelButton">↑</button>
                 <button class="channelButton">↓</button>
             </div>
@@ -443,9 +450,9 @@ class MetricTweet extends Record {
             mentions = [],
         } = this.get('entities') || {};
         for (const hashtag of hashtags) {
-            const {text, start, end} = hashtag;
+            const {tag, start, end} = hashtag;
             replacements.push({
-                entity: jdom`<a href="${text}">#${text}</a>`,
+                entity: jdom`<a href="${tag}">#${tag}</a>`,
                 start, end,
             });
         }
@@ -457,9 +464,9 @@ class MetricTweet extends Record {
             });
         }
         for (const mention of mentions) {
-            const {screen_name, start, end} = mention;
+            const {username, start, end} = mention;
             replacements.push({
-                entity: jdom`<a href="${screen_name}">@${screen_name}</a>`,
+                entity: jdom`<a href="${username}">@${username}</a>`,
                 start, end,
             });
         }
@@ -521,6 +528,9 @@ class TweetItem extends Component {
         this.bind(record, data => this.render(data));
     }
     compose(props) {
+        // TODO: link to open thread in twitter web app
+        // TODO: when clicking on hashtag/mentions, open search
+        // TODO: hover to preview user profile
         const tweetMeta = (tweet) => {
             return jdom`<div class="tweetMeta">
                 ${tweet.relativeDate()}
@@ -538,9 +548,9 @@ class TweetItem extends Component {
         const tweetStats = (tweet) => {
             const props = tweet.summarize();
             return jdom`<div class="tweetStats">
-                ${props.retweet_count} rt
+                <span class="${props.retweeted ? 'selfRetweeted' : ''}">${props.retweet_count} rt</span>
                 ·
-                ${props.favorite_count} fav
+                <span class="${props.favorited ? 'selfFavorited' : ''}">${props.favorite_count} fav</div>
                 ·
                 <button class="tweetConversation" onclick="${this.showConversation}">conv -></button>
             </div>`;
@@ -768,6 +778,10 @@ class QueryBar extends Component {
                     <div class="syntaxAction">replies to given tweet (standalone)</div>
                 </div>
                 <div class="syntaxLine"><div
+                    class="syntaxHint"><strong>lang</strong>:{en, de, ja, es, ko, hi, ...}</div>
+                    <div class="syntaxAction">tweets in a given language</div>
+                </div>
+                <div class="syntaxLine"><div
                     class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
                     <div class="syntaxAction">filter by type</div>
                 </div>
@@ -840,7 +854,6 @@ class App extends Component {
         if (this._fetchedQuery === channel.get('query')) return;
         this._fetchedQuery = channel.get('query');
 
-        this.tweets.reset([]);
         switch (channel.get('query')) {
             case HOME_QUERY: {
                 return fetch('/timeline')

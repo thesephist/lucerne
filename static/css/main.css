@@ -11,6 +11,11 @@ body {
     --foreground-light: #888;
     --highlight: rgba(0, 0, 0, .1);
     --shade: rgba(0, 0, 0, .25);
+
+    /* twitter UI colors */
+    --tw-re: rgb(29, 161, 242);
+    --tw-rt: rgb(23, 191, 99);
+    --tw-fav: rgb(224, 36, 94);
 }
 
 button,
@@ -169,7 +174,8 @@ a.queryBar-logo {
     flex-direction: row;
 }
 
-.tweetItem a {
+.tweetItem a,
+.tweetTrendText a {
     background: var(--highlight);
     padding: 0 .3em;
     color: #000;
@@ -226,6 +232,26 @@ a.queryBar-logo {
 .tweetStats {
     color: var(--foreground-light);
     font-size: .8em;
+}
+
+.tweetStats .tweetConversation {
+    border: 0;
+    color: var(--foreground-light);
+    display: inline;
+    cursor: pointer;
+    padding: 0;
+}
+
+.tweetStats .selfRetweeted {
+    color: var(--tw-rt);
+}
+.tweetStats .selfFavorited {
+    color: var(--tw-fav);
+}
+
+.tweetStats .tweetConversation:hover {
+    text-decoration: underline;
+    color: var(--tw-re);
 }
 
 .sidebar,
