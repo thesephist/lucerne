@@ -34,13 +34,21 @@ DefaultTweetParams := {
 	'count': '25'
 }
 
-` global request cache, re: Twitter's API rate limit `
-CacheGet := (cache.new)()
-
 serializeParams := params => cat(sort(map(keys(params), k => k + '=' + params.(k))), '&')
 formatKey := (url, params) => url + '?' + serializeParams(params)
 extend := (base, obj) => reduce(keys(obj), (acc, k) => acc.(k) := obj.(k), base)
 extendDefaultTweetParams := obj => extend(DefaultTweetParams, obj)
+
+` global request cache, re: Twitter's API rate limit `
+CacheGet := (cache.new)()
+cacheResp := (request, params, cb) => CacheGet(
+	formatKey(request.url, params)
+	cb => req(sign(request, params), evt => evt.type :: {
+		'resp' -> cb(evt.data.body)
+		'error' -> cb(())
+	})
+	cb
+)
 
 ` send a tweet. Will log an error if status is too long. `
 send := (status, cb) => (
@@ -68,14 +76,7 @@ retrieve := cb => (
 
 	params := DefaultTweetParams
 
-	CacheGet(
-		formatKey(request.url, params)
-		cb => req(sign(request, params), evt => evt.type :: {
-			'resp' -> cb(evt.data.body)
-			'error' -> cb(())
-		})
-		data => cb(data)
-	)
+	cacheResp(request, params, cb)
 )
 
 ` search Twitter for a non-exhaustive match against queries `
@@ -106,14 +107,7 @@ search := (query, cb) => (
 		}
 	})
 
-	CacheGet(
-		formatKey(request.url, params)
-		cb => req(sign(request, params), evt => evt.type :: {
-			'resp' -> cb(evt.data.body)
-			'error' -> cb(evt.message)
-		})
-		data => cb(data)
-	)
+	cacheResp(request, params, cb)
 )
 
 conversation := (tweetID, cb) => (
@@ -125,15 +119,7 @@ conversation := (tweetID, cb) => (
 		params := {
 			'tweet.fields': 'conversation_id'
 		}
-		` TODO: turn this wrapper into a fn `
-		CacheGet(
-			formatKey(request.url, params)
-			cb => req(sign(request, params), evt => evt.type :: {
-				'resp' -> cb(evt.data.body)
-				'error' -> cb(evt.message)
-			})
-			data => cb(data)
-		)
+		cacheResp(request, params, cb)
 	)
 
 	getTweetsInConversation := (conversationID, cb) => (
@@ -145,14 +131,7 @@ conversation := (tweetID, cb) => (
 			'max_results': '25'
 			'query': f('conversation_id:{{0}}', [conversationID])
 		}
-		CacheGet(
-			formatKey(request.url, params)
-			cb => req(sign(request, params), evt => evt.type :: {
-				'resp' -> cb(evt.data.body)
-				'error' -> cb(evt.message)
-			})
-			data => cb(data)
-		)
+		cacheResp(request, params, cb)
 	)
 
 	lookupTweetsByID := (ids, cb) => (
@@ -168,14 +147,7 @@ conversation := (tweetID, cb) => (
 			'exclude_replies': 'false'
 			'include_rts': '0'
 		}
-		CacheGet(
-			formatKey(request.url, params)
-			cb => req(sign(request, params), evt => evt.type :: {
-				'resp' -> cb(evt.data.body)
-				'error' -> cb(evt.message)
-			})
-			data => cb(data)
-		)
+		cacheResp(request, params, cb)
 	)
 
 	Err := msg => serJSON({error: 'Could not get conversation: ' + msg})
@@ -211,13 +183,6 @@ trends := cb => (
 		'tweet.fields': 'attachments,created_at,entities,non_public_metrics,public_metrics,organic_metrics,text'
 	}
 
-	CacheGet(
-		formatKey(request.url, params)
-		cb => req(sign(request, params), evt => evt.type :: {
-			'resp' -> cb(evt.data.body)
-			'error' -> cb(evt.message)
-		})
-		data => cb(data)
-	)
+	cacheResp(request, params, cb)
 )
 
