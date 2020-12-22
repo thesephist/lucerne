@@ -425,7 +425,7 @@ class ChannelList extends ListOf(ChannelItem) {
         dispatcher.addHandler('0', evt => {
             const selected = this.record.summarize()[10 - 1];
             if (selected) {
-                actives.setActive(selected);
+                router.gotoChannel(selected);
             }
         });
         dispatcher.addHandler(['+', '='], evt => {
@@ -835,6 +835,10 @@ class QueryBar extends Component {
                 <div class="syntaxLine">
                     <div class="syntaxHint"><strong>lang</strong>:{en, de, ja, es, ko, hi, ...}</div>
                     <div class="syntaxAction">tweets in a given language</div>
+                </div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>min_faves</strong>:N</div>
+                    <div class="syntaxAction">tweets with N or more likes</div>
                 </div>
                 <div class="syntaxLine">
                     <div class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
