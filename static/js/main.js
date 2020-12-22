@@ -6,6 +6,7 @@ const {
     Router,
 } = Torus;
 
+const ME = 'thesephist';
 const HOME_QUERY = 'home_timeline';
 
 function fmtPercent(n) {
@@ -62,7 +63,6 @@ function cleanUpURL(url) {
 }
 
 // Global singleton to manage keyboard shortcuts
-// TODO: global shortcut dictionary somewhere in the UI
 class ShortcutDispatcher {
     constructor() {
         this.shortcuts = {};
@@ -272,7 +272,7 @@ class Tweet extends Record {
                         src="${m.media_url_https}" />`;
                 }
                 case 'video': {
-                    // TODO: link to actual video
+                    // TODO: mark as video
                     return jdom`<img load="lazy"
                         class="bordered tweetImg"
                         onclick="${() => openModal(m.media_url_https)}"
@@ -537,7 +537,9 @@ function UserPopup(user) {
             <img class="bordered profileImg"
                 src="${user.profile_image_url_https}" alt="Profile picture" />
             <div class="name">
-                ${user.name}
+                <a class="nameLink" href="https://twitter.com/${user.screen_name}" target="_blank">
+                    ${user.name}
+                </a>
             </div>
             <div class="location">
                 @${user.screen_name}
@@ -546,6 +548,16 @@ function UserPopup(user) {
         </div>
         <div class="userPopupDescription">
             ${user.description}
+        </div>
+        <div class="userPopupFilters">
+            <button class="userPopupFilter"
+                onclick="${() => router.gotoQuery('from:' + user.screen_name)}">recents</button>
+            ·
+            <button class="userPopupFilter"
+                onclick="${() => router.gotoQuery(`from:${user.screen_name} sort:top`)}">top</button>
+            ·
+            <button class="userPopupFilter"
+                onclick="${() => router.gotoQuery(`@${ME} @${user.screen_name}`)}">mutual</button>
         </div>
         <div class="userPopupStats">
             <strong>${fmtNumber(user.friends_count)}</strong> following
@@ -582,9 +594,9 @@ class TweetItem extends Component {
         const tweetStats = tweet => {
             const props = tweet.summarize();
             return jdom`<div class="tweetStats">
-                <span class="${props.retweeted ? 'selfRetweeted' : ''}">${props.retweet_count} rt</span>
+                <span class="${props.retweeted ? 'selfRetweeted' : ''}">${fmtNumber(props.retweet_count)} rt</span>
                 ·
-                <span class="${props.favorited ? 'selfFavorited' : ''}">${props.favorite_count} fav</div>
+                <span class="${props.favorited ? 'selfFavorited' : ''}">${fmtNumber(props.favorite_count)} fav</div>
                 ·
                 <button class="tweetConversation" onclick="${() => this.showConversation(tweet)}">conv</button>
                 ·
@@ -652,11 +664,6 @@ class TweetList extends ListOf(TweetItem) {
 
 class Timeline extends Component {
     init(tweets, actives) {
-        // TODO: add options:
-        // - hide notFollowing tweets
-        // - hide retweets
-        // - hide image tweets
-        // TODO: option to refresh feed / force-refresh feed
         this.tweetList = new TweetList(tweets, actives);
     }
     compose() {
@@ -716,6 +723,7 @@ class TweetTrend extends Component {
 
 class TweetTrendList extends ListOf(TweetTrend) {
     // TODO: paginate to show up to 20 recent
+    // TODO: sort list by some engagement metrics, descending?
     compose() {
         return jdom`<div class="tweetTrendList">
             ${this.nodes}
@@ -805,52 +813,52 @@ class QueryBar extends Component {
                 }}">-></button>
             <div class="bordered helper">
                 <div class="syntaxLine">
-                    <div class="syntaxHint"><strong>from</strong>:user</div>
-                    <div class="syntaxAction">tweets by @user</div>
+                    <div class="syntaxHint"><strong>from</strong>:user, <strong>to</strong>:user</div>
+                    <div class="syntaxAction">tweets by, in reply to @user</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>to</strong>:user</div>
-                    <div class="syntaxAction">tweets in reply to @user</div>
-                </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>url</strong>:uri</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>url</strong>:uri</div>
                     <div class="syntaxAction">tweets with link containing "uri"</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>conv</strong>:id</div>
-                    <div class="syntaxAction">conversations from a given tweet (standalone)</div>
-                </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>re</strong>:id</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>re</strong>:id</div>
                     <div class="syntaxAction">replies to given tweet (standalone)</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>lang</strong>:{en, de, ja, es, ko, hi, ...}</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>conv</strong>:id</div>
+                    <div class="syntaxAction">conversations from a given tweet (standalone)</div>
+                </div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>sort</strong>:top</div>
+                    <div class="syntaxAction">search by popularity, not recency</div>
+                </div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>lang</strong>:{en, de, ja, es, ko, hi, ...}</div>
                     <div class="syntaxAction">tweets in a given language</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
                     <div class="syntaxAction">filter by type</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint"><strong>since</strong>:YYYY-MM-DD, <strong>until</strong>:YYYY-MM-DD</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint"><strong>since</strong>:YYYY-MM-DD, <strong>until</strong>:YYYY-MM-DD</div>
                     <div class="syntaxAction">tweets since, tweets, until</div>
                 </div>
                 <hr/>
-                <div class="syntaxLine"><div
-                    class="syntaxHint">-A</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint">-A</div>
                     <div class="syntaxAction"><strong>not</strong> A e.g. -is:retweet</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint">A B</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint">A B</div>
                     <div class="syntaxAction">A <strong>and</strong> B</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint">A <strong>OR</strong> B</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint">A <strong>OR</strong> B</div>
                     <div class="syntaxAction">A <strong>or</strong> B</div>
                 </div>
-                <div class="syntaxLine"><div
-                    class="syntaxHint">"A B C"</div>
+                <div class="syntaxLine">
+                    <div class="syntaxHint">"A B C"</div>
                     <div class="syntaxAction">Literal match "A B C"</div>
                 </div>
                 <div class="syntaxLine">

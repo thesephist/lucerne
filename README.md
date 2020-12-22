@@ -11,9 +11,8 @@ Lucerne uses GNU Make for development scripts.
 
 ## Unfinished tasks
 
+- [ ] User popups on mentions in-line in Tweets
 - [ ] Paginated infinite scrolling/loading
 - [ ] Reordering channels
 - [ ] Fans
-- [ ] User profile lightbox
-- [ ] User popups on mentions in-line in Tweets
 

@@ -254,6 +254,15 @@ a.queryBar-logo {
     line-height: 1.5em;
 }
 
+.UserPopup a.nameLink {
+    text-decoration: none;
+    color: inherit;
+}
+
+.UserPopup a.nameLink:hover {
+    text-decoration: underline;
+}
+
 .UserPopup .profileImg {
     border-radius: 50%;
     float: left;
@@ -271,6 +280,22 @@ a.queryBar-logo {
 .UserPopup .userPopupDescription {
     padding: var(--lc-padding);
     padding-top: .5rem;
+}
+
+.UserPopup .userPopupFilters {
+    padding: var(--lc-padding);
+}
+
+.UserPopup .userPopupFilter {
+    border: 0;
+    background: transparent;
+    display: inline;
+    padding: 0;
+    cursor: pointer;
+}
+
+.UserPopup .userPopupFilter:hover {
+    text-decoration: underline;
 }
 
 .UserPopup .userPopupStats {
