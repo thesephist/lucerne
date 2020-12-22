@@ -1,4 +1,4 @@
-# Lucerne
+# Lucerne 📡
 
 **Lucerne** (named after the Swiss city) is a Twitter client designed to amplify my personal Twitter [workflows](https://thesephist.com/posts/tools/), written in [Ink](https://dotink.co/).
 
@@ -11,7 +11,6 @@ Lucerne uses GNU Make for development scripts.
 
 ## Unfinished tasks
 
-- [ ] User popups on mentions in-line in Tweets
 - [ ] Paginated infinite scrolling/loading
 - [ ] Reordering channels
 - [ ] Fans

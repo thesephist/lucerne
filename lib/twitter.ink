@@ -80,7 +80,7 @@ retrieve := cb => (
 )
 
 ` search Twitter for a non-exhaustive match against queries `
-` TODO: migrate to 30-day premium or v2 full archive search:
+` NOTE: later, migrate to 30-day premium or v2 full archive search:
 	https://developer.twitter.com/en/docs/twitter-api/tweets/full-archive-search/api-reference/get-tweets-search-all`
 search := (query, cb) => (
 	pcs := split(query, ' ')
