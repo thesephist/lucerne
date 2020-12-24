@@ -31,6 +31,7 @@ matchPath := (pattern, path) => (
 	path := pathParts.0
 	pathParts.1 :: {
 		() -> ()
+		'' -> ()
 		_ -> (
 			queries := map(split(pathParts.1, '&'), pair => split(pair, '='))
 			each(queries, pair => params.(pair.0) := pctDecode(pair.1))

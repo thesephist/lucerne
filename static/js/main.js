@@ -173,11 +173,17 @@ class Channel extends Record {
     isHome() {
         return this.get('query') === HOME_QUERY;
     }
-    fetchTweets() {
+    fetchTweets({ max } = {}) {
+        const params = new URLSearchParams();
+        if (max) {
+            // max_id / until_id for pagination
+            params.set('max', max);
+        }
+
         const query = this.get('query');
         switch (query) {
             case HOME_QUERY: {
-                return fetch('/timeline')
+                return fetch('/timeline?' + params.toString())
                     .then(resp => resp.json())
                     .then(data => data.map(tweet => new Tweet(tweet)));
             }
@@ -192,19 +198,20 @@ class Channel extends Record {
 
         if (re_match != null) {
             const tid = re_match[1];
-            return fetch(`/conversation/${tid}`)
+            return fetch(`/conversation/${tid}?${params.toString()}`)
                 .then(resp => resp.json())
                 .then(data => data
                     .filter(tw => tw.in_reply_to_status_id_str === tid)
                     .map(tweet => new Tweet(tweet)));
         } else if (conv_match != null) {
             const tid = conv_match[1];
-            return fetch(`/conversation/${tid}`)
+            return fetch(`/conversation/${tid}?${params.toString()}`)
                 .then(resp => resp.json())
                 .then(data => data.map(tweet => new Tweet(tweet)));
         }
 
-        return fetch(`/search?query=${encodeURIComponent(query)}`)
+        params.set('query', query);
+        return fetch(`/search?${params.toString()}`)
             .then(resp => resp.json())
             .then(data => data.statuses.map(tweet => new Tweet(tweet)));
     }
@@ -343,6 +350,10 @@ class Tweet extends Record {
 class TweetStore extends StoreOf(Record) {
     get comparator() {
         return tweet => -tweet.date();
+    }
+    add(record) {
+        if (this.find(record.id)) return;
+        return super.add(record);
     }
 }
 
@@ -745,11 +756,43 @@ class TweetList extends ListOf(TweetItem) {
 
 class Timeline extends Component {
     init(tweets, actives) {
+        this._loadingMore = false;
+
         this.tweetList = new TweetList(tweets, actives);
+
+        this.loadMore = async minID => {
+            this._loadingMore = true
+            this.render();
+
+            const channel = actives.effectiveChannel();
+            const moreTweets = await channel.fetchTweets({
+                max: minID,
+            });
+
+            // check again whether user has changed channel/query since fetch in initiated
+            if (channel.get('query') != actives.effectiveChannel().get('query')) return;
+
+            for (const tweet of moreTweets) {
+                tweets.add(tweet);
+            }
+            this._loadingMore = false;
+            this.render();
+        }
     }
     compose() {
         return jdom`<div class="bordered timeline">
             ${this.tweetList.node}
+            ${this._loadingMore ? jdom`<div class="timelineLoading thin" />` : jdom`<button class="tweetListLoadMore"
+                onclick="${evt => {
+                    const tweets = Array.from(this.tweetList.record.records.values())
+                    const ids = tweets.map(tw => tw.id);
+                    const minID = ids.sort()[0];
+                    if (!minID) return;
+
+                    this.loadMore(minID);
+                }}">
+                more ↓
+            </button>`}
         </div>`;
     }
 }
@@ -1035,8 +1078,7 @@ class App extends Component {
             <div class="sections">
                 ${this.sidebar.node}
                 ${this._loading ? jdom`<div class="bordered timeline">
-                    <div class="timelineLoading">
-                    </div>
+                    <div class="timelineLoading" />
                 </div>` : this.timeline.node}
                 ${this.stats.node}
             </div>

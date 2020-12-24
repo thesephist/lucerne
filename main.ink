@@ -53,9 +53,9 @@ addGetAPI := (url, provider) => addRoute(url, params => (req, end) => req.method
 	}))
 	_ -> end(MethodNotAllowed)
 })
-addGetAPI('/timeline', (_, cb) => retrieve(cb))
-addGetAPI('/search', (params, cb) => search(params.query, cb))
-addGetAPI('/conversation/*tweetID', (params, cb) => conversation(params.tweetID, cb))
+addGetAPI('/timeline', (params, cb) => retrieve(params.max, cb))
+addGetAPI('/search', (params, cb) => search(params.query, params.max, cb))
+addGetAPI('/conversation/*tweetID', (params, cb) => conversation(params.tweetID, params.max, cb))
 addGetAPI('/trends', (_, cb) => trends(cb))
 
 ` Local data services `

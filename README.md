@@ -11,7 +11,7 @@ Lucerne uses GNU Make for development scripts.
 
 ## Unfinished tasks
 
-- [ ] Paginated infinite scrolling/loading
+- [ ] Basic ability to send tweets
 - [ ] Reordering channels
 - [ ] Fans
 - [ ] Policy for evicting the request cache in the API adapter (`lib/twitter.ink`)

@@ -73,13 +73,14 @@ send := (status, cb) => (
 )
 
 ` retrieve the timeline for the logged-in user `
-retrieve := cb => (
+retrieve := (max, cb) => (
 	request := {
 		method: 'GET'
 		url: 'https://api.twitter.com/1.1/statuses/home_timeline.json'
 	}
 
-	params := DefaultTweetParams
+	params := extendDefaultTweetParams({})
+	addPropIfPresent(params, 'max_id', max)
 
 	cacheResp(request, params, cb)
 )
@@ -87,7 +88,7 @@ retrieve := cb => (
 ` search Twitter for a non-exhaustive match against queries `
 ` NOTE: later, migrate to 30-day premium or v2 full archive search:
 	https://developer.twitter.com/en/docs/twitter-api/tweets/full-archive-search/api-reference/get-tweets-search-all`
-search := (query, cb) => (
+search := (query, max, cb) => (
 	pcs := split(query, ' ')
 	hasTop? := some(map(pcs, pc => pc = 'sort:top'))
 	query := (hasTop? :: {
@@ -111,11 +112,12 @@ search := (query, cb) => (
 			false -> 'recent'
 		}
 	})
+	addPropIfPresent(params, 'max_id', max)
 
 	cacheResp(request, params, cb)
 )
 
-conversation := (tweetID, cb) => (
+conversation := (tweetID, max, cb) => (
 	getConversationID := (tweetID, cb) => (
 		request := {
 			method: 'GET'
@@ -136,6 +138,7 @@ conversation := (tweetID, cb) => (
 			'max_results': '25'
 			'query': f('conversation_id:{{0}}', [conversationID])
 		}
+		addPropIfPresent(params, 'until_id', max)
 		cacheResp(request, params, cb)
 	)
 
