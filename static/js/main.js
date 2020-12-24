@@ -833,15 +833,15 @@ class QueryBar extends Component {
                     <div class="syntaxAction">search by popularity, not recency</div>
                 </div>
                 <div class="syntaxLine">
-                    <div class="syntaxHint"><strong>lang</strong>:{en, de, ja, es, ko, hi, ...}</div>
+                    <div class="syntaxHint"><strong>lang</strong>:en, de, ja, es, ko, hi, ...</div>
                     <div class="syntaxAction">tweets in a given language</div>
                 </div>
                 <div class="syntaxLine">
-                    <div class="syntaxHint"><strong>min_faves</strong>:N</div>
-                    <div class="syntaxAction">tweets with N or more likes</div>
+                    <div class="syntaxHint"><strong>min_faves</strong>:N, <strong>min_retweets</strong>:N</div>
+                    <div class="syntaxAction">tweets with N or more likes or retweets</div>
                 </div>
                 <div class="syntaxLine">
-                    <div class="syntaxHint"><strong>filter</strong>:{media, retweets, links, images}</div>
+                    <div class="syntaxHint"><strong>filter</strong>:media, retweets, replies, links, images</div>
                     <div class="syntaxAction">filter by type</div>
                 </div>
                 <div class="syntaxLine">
@@ -939,6 +939,9 @@ class App extends Component {
         if (this._fetchedQuery === channel.get('query')) return;
         this._fetchedQuery = channel.get('query');
 
+        // TODO: elegant solution for preventing races when a request return
+        // response after the user has switched to another timeline. Ideally,
+        // we can do this while sharing the same underlying TweetStore.
         switch (channel.get('query')) {
             case HOME_QUERY: {
                 return fetch('/timeline')
