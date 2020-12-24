@@ -572,6 +572,40 @@ a.queryBar-logo {
     flex-shrink: 1;
 }
 
+.timelineLoading {
+    margin-top: 20vh;
+    height: 3px;
+    width: 80%;
+    max-width: 300px;
+    position: relative;
+    background: var(--highlight);
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+}
+
+@keyframes slider {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.timelineLoading::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 60%;
+    padding-right: 40%;
+    background: #000;
+    position: relative;
+    top: 0;
+    left: 0;
+    animation: slider 1s linear infinite;
+}
+
 @media only screen and (min-width: 833px) {
     .sidebar {
         text-align: right;

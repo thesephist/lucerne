@@ -130,11 +130,62 @@ class State extends Record {
             channel: chan,
         });
     }
+    // returns the currently active query as a Channel abstraction, regardless
+    // of whether the active query is from a pre-set channel or a custom ad-hoc
+    // query. This is useful becaue the Channel abstraction provides lots of
+    // nice methods for interacting with filtered streams of tweets.
+    effectiveChannel() {
+        const actives =this.summarize();
+
+        // if query is non-blank, create a temp channel for the query
+        if (actives.query) {
+            return new Channel({
+                name: actives.query,
+                query: actives.query,
+            });
+        }
+        return actives.channel;
+    }
 }
 
 class Channel extends Record {
     isHome() {
         return this.get('query') === HOME_QUERY;
+    }
+    fetchTweets() {
+        const query = this.get('query');
+        switch (query) {
+            case HOME_QUERY: {
+                return fetch('/timeline')
+                    .then(resp => resp.json())
+                    .then(data => data.map(tweet => new Tweet(tweet)));
+            }
+        }
+        // default: fallthrough
+
+        const REPLY_RE = /\bre:(\d+)\b/;
+        const CONV_RE = /\bconv:(\d+)\b/;
+
+        const re_match = query.match(REPLY_RE);
+        const conv_match = query.match(CONV_RE);
+
+        if (re_match != null) {
+            const tid = re_match[1];
+            return fetch(`/conversation/${tid}`)
+                .then(resp => resp.json())
+                .then(data => data
+                    .filter(tw => tw.in_reply_to_status_id_str === tid)
+                    .map(tweet => new Tweet(tweet)));
+        } else if (conv_match != null) {
+            const tid = conv_match[1];
+            return fetch(`/conversation/${tid}`)
+                .then(resp => resp.json())
+                .then(data => data.map(tweet => new Tweet(tweet)));
+        }
+
+        return fetch(`/search?query=${encodeURIComponent(query)}`)
+            .then(resp => resp.json())
+            .then(data => data.statuses.map(tweet => new Tweet(tweet)));
     }
 }
 
@@ -876,6 +927,8 @@ class QueryBar extends Component {
 
 class App extends Component {
     init(router) {
+        this._loading = false;
+
         this.actives = new State({
             query: '',
             channel: new Channel({
@@ -924,65 +977,37 @@ class App extends Component {
             }
         });
     }
-    fetchTimeline() {
+    setLoading(loading) {
+        this._loading = loading;
+        this.render();
+    }
+    async fetchTimeline() {
         // wait for channels to load before doing anything
         if (!this.channels.records.size) return;
 
-        const actives = this.actives.summarize();
+        const channel = this.actives.effectiveChannel();
 
-        // if query is non-blank, create a temp channel for the query
-        const channel = actives.query ? new Channel({
-            name: actives.query,
-            query: actives.query,
-        }) : actives.channel;
-
+        // don't re-fetch if already fetched/loaded
         if (this._fetchedQuery === channel.get('query')) return;
         this._fetchedQuery = channel.get('query');
 
-        // TODO: elegant solution for preventing races when a request return
-        // response after the user has switched to another timeline. Ideally,
-        // we can do this while sharing the same underlying TweetStore.
-        switch (channel.get('query')) {
-            case HOME_QUERY: {
-                return fetch('/timeline')
-                    .then(resp => resp.json())
-                    .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
-            }
-            default: {
-                const query = channel.get('query');
+        this.setLoading(true);
+        const tweets = await channel.fetchTweets();
+        // check again whether user has changed channel/query since fetch in initiated
+        if (channel.get('query') != this.actives.effectiveChannel().get('query')) return;
 
-                const REPLY_RE = /\bre:(\d+)\b/;
-                const CONV_RE = /\bconv:(\d+)\b/;
-
-                const re_match = query.match(REPLY_RE);
-                const conv_match = query.match(CONV_RE);
-
-                if (re_match != null) {
-                    const tid = re_match[1];
-                    return fetch(`/conversation/${tid}`)
-                        .then(resp => resp.json())
-                        .then(data => this.tweets.reset(data
-                            .filter(tw => tw.in_reply_to_status_id_str === tid)
-                            .map(tweet => new Tweet(tweet))));
-                } else if (conv_match != null) {
-                    const tid = conv_match[1];
-                    return fetch(`/conversation/${tid}`)
-                        .then(resp => resp.json())
-                        .then(data => this.tweets.reset(data.map(tweet => new Tweet(tweet))));
-                } else {
-                    return fetch(`/search?query=${encodeURIComponent(channel.get('query'))}`)
-                        .then(resp => resp.json())
-                        .then(data => this.tweets.reset(data.statuses.map(tweet => new Tweet(tweet))));
-                }
-            }
-        }
+        this.tweets.reset(tweets);
+        this.setLoading(false);
     }
     compose() {
         return jdom`<div class="app">
             ${this.queryBar.node}
             <div class="sections">
                 ${this.sidebar.node}
-                ${this.timeline.node}
+                ${this._loading ? jdom`<div class="bordered timeline">
+                    <div class="timelineLoading">
+                    </div>
+                </div>` : this.timeline.node}
                 ${this.stats.node}
             </div>
         </div>`;
