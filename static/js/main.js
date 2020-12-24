@@ -1046,7 +1046,9 @@ class App extends Component {
                     query: searchParams.q,
                 });
             } else {
-                router.gotoChannel(this.channels.summarize()[0]);
+                const chan = this.channels.summarize()[0];
+                if (!chan) return;
+                router.gotoChannel(chan);
             }
         });
     }
