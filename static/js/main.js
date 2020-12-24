@@ -602,13 +602,15 @@ function UserPopup(user) {
         </div>
         <div class="userPopupFilters">
             <button class="userPopupFilter"
-                onclick="${() => router.gotoQuery('from:' + user.screen_name)}">recents</button>
+                onclick="${() => router.gotoQuery(`from:${user.screen_name} -filter:replies`)}">recents</button>
             ·
             <button class="userPopupFilter"
-                onclick="${() => router.gotoQuery(`from:${user.screen_name} sort:top`)}">top</button>
+                onclick="${() => router.gotoQuery(`from:${user.screen_name} -filter:replies min_faves:10`)}">top</button>
             ·
             <button class="userPopupFilter"
-                onclick="${() => router.gotoQuery(`@${ME} @${user.screen_name}`)}">mutual</button>
+                onclick="${() => router.gotoQuery(`(from:${ME} OR @${ME}) (from:${user.screen_name} OR @${user.screen_name})`)}">
+                    mutual
+                </button>
         </div>
         <div class="userPopupStats">
             <strong>${fmtNumber(user.friends_count)}</strong> following
