@@ -175,6 +175,7 @@ a.queryBar-logo {
     flex-direction: row;
 }
 
+.userPopupDescription a,
 .tweetItem .tweetBody  > a,
 .tweetTrendText a {
     background: var(--highlight);
@@ -261,6 +262,10 @@ a.queryBar-logo {
 
 .UserPopup a.nameLink:hover {
     text-decoration: underline;
+}
+
+.UserPopup .userPopupURL a {
+    color: inherit;
 }
 
 .UserPopup .profileImg {

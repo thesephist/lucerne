@@ -52,6 +52,27 @@ function fmtDate(date) {
     }
 }
 
+function stitchEntities(original, replacements) {
+    replacements.sort((a, b) => {
+        const ai = a.indices[0];
+        const bi = b.indices[0];
+        return ai - bi;
+    });
+    let lastIdx = 0;
+    let front = [];
+    for (const {entity, indices} of replacements) {
+        const [start, end] = indices;
+        if (start < lastIdx) continue;
+
+        front.push(decodeHTML(substringByCodePoint(original, lastIdx, start)));
+        front.push(entity);
+        lastIdx = end;
+    }
+    front.push(decodeHTML(substringByCodePoint(original, lastIdx, original.length)));
+
+    return front.filter(e => !!e);
+}
+
 function decodeHTML(text) {
     const ta = document.createElement('textarea');
     ta.innerHTML = text;
@@ -242,7 +263,6 @@ class Tweet extends Record {
         return `https://twitter.com/${this.get('user').screen_name}/status/${this.id}`;
     }
     text() {
-        let original = this.get('full_text');
         const replacements = [];
 
         const {hashtags, urls, user_mentions} = this.get('entities');
@@ -284,24 +304,7 @@ class Tweet extends Record {
             }
         }
 
-        replacements.sort((a, b) => {
-            const ai = a.indices[0];
-            const bi = b.indices[0];
-            return ai - bi;
-        });
-        let lastIdx = 0;
-        let front = [];
-        for (const {entity, indices} of replacements) {
-            const [start, end] = indices;
-            if (start < lastIdx) continue;
-
-            front.push(decodeHTML(substringByCodePoint(original, lastIdx, start)));
-            front.push(entity);
-            lastIdx = end;
-        }
-        front.push(decodeHTML(substringByCodePoint(original, lastIdx, original.length)));
-
-        return front.filter(e => !!e);
+        return stitchEntities(this.get('full_text'), replacements);
     }
     media() {
         const entities = this.get('extended_entities');
@@ -506,7 +509,6 @@ class MetricTweet extends Record {
         return fmtDate(this.date());
     }
     text() {
-        let original = this.get('text');
         const replacements = [];
 
         const {
@@ -518,39 +520,25 @@ class MetricTweet extends Record {
             const {tag, start, end} = hashtag;
             replacements.push({
                 entity: jdom`<a href="${tag}">#${tag}</a>`,
-                start, end,
+                indices: [start, end],
             });
         }
         for (const url of urls) {
             const {expanded_url, start, end} = url;
             replacements.push({
                 entity: jdom`<a href="${expanded_url}">${cleanUpURL(expanded_url)}</a>`,
-                start, end,
+                indices: [start, end],
             });
         }
         for (const mention of mentions) {
             const {username, start, end} = mention;
             replacements.push({
                 entity: jdom`<a href="${username}">@${username}</a>`,
-                start, end,
+                indices: [start, end],
             });
         }
 
-        replacements.sort((a, b) => {
-            return a.start - b.start;
-        });
-        let lastIdx = 0;
-        let front = [];
-        for (const {entity, start, end} of replacements) {
-            if (start < lastIdx) continue;
-
-            front.push(decodeHTML(substringByCodePoint(original, lastIdx, start)));
-            front.push(entity);
-            lastIdx = end;
-        }
-        front.push(decodeHTML(substringByCodePoint(original, lastIdx, original.length)));
-
-        return front.filter(e => !!e);
+        return stitchEntities(this.get('text'), replacements);
     }
     rawText() {
         return Torus.render(null, null, jdom`<div>${this.text()}</div>`).textContent;
@@ -583,6 +571,42 @@ class Sidebar extends Component {
 }
 
 function UserPopup(user) {
+    function userURL(user) {
+        const entities = (user.entities || {}).url;
+        if (!entities) return;
+        const urls = entities.urls;
+
+        const replacements = [];
+        for (const url of urls) {
+            const {expanded_url, indices} = url;
+            replacements.push({
+                entity: jdom`<a href="${expanded_url}"
+                    target="_blank">${cleanUpURL(expanded_url)}</a>`,
+                indices,
+            });
+        }
+
+        return stitchEntities(user.url, replacements);
+    }
+
+    function userBio(user) {
+        const entities = (user.entities || {}).description;
+        if (!entities) return;
+        const urls = entities.urls;
+
+        const replacements = [];
+        for (const url of urls) {
+            const {expanded_url, indices} = url;
+            replacements.push({
+                entity: jdom`<a href="${expanded_url}"
+                    target="_blank">${cleanUpURL(expanded_url)}</a>`,
+                indices,
+            });
+        }
+
+        return stitchEntities(user.description, replacements);
+    }
+
     return jdom`<div class="UserPopup bordered">
         <div class="solid userPopupHeader">
             <img class="bordered profileImg"
@@ -594,11 +618,15 @@ function UserPopup(user) {
             </div>
             <div class="location">
                 @${user.screen_name}
+                ${user.url ? [
+                    '· ',
+                    jdom`<span class="userPopupURL">${userURL(user)}</span>`,
+                ] : null}
                 ${user.location ? `· ${user.location}` : null}
             </div>
         </div>
         <div class="userPopupDescription">
-            ${user.description}
+            ${userBio(user)}
         </div>
         <div class="userPopupFilters">
             <button class="userPopupFilter"
