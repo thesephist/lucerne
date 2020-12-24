@@ -8,6 +8,7 @@ percent := load('../vendor/percent')
 
 log := std.log
 f := std.format
+clone := std.clone
 cat := std.cat
 map := std.map
 each := std.each
@@ -36,8 +37,12 @@ DefaultTweetParams := {
 
 serializeParams := params => cat(sort(map(keys(params), k => k + '=' + params.(k))), '&')
 formatKey := (url, params) => url + '?' + serializeParams(params)
-extend := (base, obj) => reduce(keys(obj), (acc, k) => acc.(k) := obj.(k), base)
+extend := (base, obj) => reduce(keys(obj), (acc, k) => acc.(k) := obj.(k), clone(base))
 extendDefaultTweetParams := obj => extend(DefaultTweetParams, obj)
+addPropIfPresent := (obj, key, val) => val :: {
+	() -> obj
+	_ -> obj.(key) := val
+}
 
 ` global request cache, re: Twitter's API rate limit `
 CacheGet := (cache.new)()
