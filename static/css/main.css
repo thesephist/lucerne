@@ -396,8 +396,8 @@ a.queryBar-logo {
 
 .stats {
     left: 100%;
-    height: calc(100% + 1em);
-    top: -1em;
+    height: calc(100% + 1em + 1px);
+    top: calc(-1em - 1px);
     overflow-y: auto;
     padding-top: 1em;
     box-sizing: border-box;
@@ -731,7 +731,7 @@ a.queryBar-logo {
     }
 
     .app {
-        margin-top: .5em;
+        margin: .5em auto;
         width: calc(100% - 1em);
         height: calc(100vh - 1em);
         max-width: 900px;
