@@ -26,6 +26,12 @@ textarea {
     font-size: 1em;
     font-family: var(--font-sans);
     background: var(--background);
+    margin: 0;
+}
+
+button:active {
+    /* Safari */
+    color: inherit;
 }
 
 .mobile {
