@@ -4,7 +4,9 @@ std := load('../vendor/std')
 
 log := std.log
 f := std.format
+reduce := std.reduce
 
+MaxCached := 100
 CacheDelay := 60 `` seconds
 CacheDelay := 3600 `` TODO: DEBUG
 
@@ -15,6 +17,12 @@ new := () => (
 		() -> 0
 		_ -> store.(key).timestamp
 	}
+
+	` get the oldest valid record in the cache to evict with LRU policy `
+	oldest := () => reduce(keys(store), (acc, key) => getTimestamp(key) < getTimestamp(acc) :: {
+		true -> key
+		false -> acc
+	}, keys(store).0)
 
 	` cache.new returns a single callback that is the "getter" for the cache.
 
@@ -28,6 +36,13 @@ new := () => (
 			store.(key) := {
 				timestamp: time()
 				record: resp
+			}
+			len(store) > MaxCached :: {
+				true -> (
+					evicted := oldest()
+					store.(evicted) := () `` clear cache
+					log(f('Cache limit exceeded, evicting {{0}}', [evicted]))
+				)
 			}
 			cb(resp)
 		))

@@ -14,5 +14,4 @@ Lucerne uses GNU Make for development scripts.
 - [ ] Basic ability to send tweets
 - [ ] Reordering channels
 - [ ] Fans
-- [ ] Policy for evicting the request cache in the API adapter (`lib/twitter.ink`)
 
