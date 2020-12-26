@@ -12,6 +12,5 @@ Lucerne uses GNU Make for development scripts.
 ## Unfinished tasks
 
 - [ ] Basic ability to send tweets
-- [ ] Reordering channels
 - [ ] Fans
 

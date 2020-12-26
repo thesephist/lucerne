@@ -232,6 +232,18 @@ class ChannelStore extends StoreOf(Channel) {
             alert(`Could not load channels: ${err}`);
         });
     }
+    reorder(channel, increment) {
+        const old = this.summarize();
+        if (!old.includes(channel)) return;
+
+        const idx = old.indexOf(channel);
+        if (idx + increment < 0) return;
+        if (idx + increment >= old.length) return;
+
+        old.splice(idx, 1);
+        old.splice(idx + increment, 0, channel);
+        this.reset(old);
+    }
     save() {
         if (!this.records.size) {
             return Promise.resolve();
@@ -358,13 +370,16 @@ class TweetStore extends StoreOf(Record) {
 }
 
 class ChannelItem extends Component {
-    init(record, remover, {actives}, {getShortcutNumber, saveChannels}) {
+    init(record, remover, {actives}, {getShortcutNumber, saveChannels, moveUp, moveDown}) {
         this._editing = false;
         this._input = null;
 
         this.remover = remover;
         this.getShortcutNumber = getShortcutNumber;
         this.saveChannels = saveChannels;
+        this.moveUp = () => moveUp(this.record);
+        this.moveDown = () => moveDown(this.record);
+
         this.isActive = () => actives.get('channel') === record;
         this.setActive = () => {
             if (this._editing) return;
@@ -391,6 +406,16 @@ class ChannelItem extends Component {
             dispatcher.addHandler(['[', ']'], () => {
                 if (this.isActive()) {
                     this.startEditing();
+                }
+            });
+            dispatcher.addHandler('j', () => {
+                if (this.isActive()) {
+                    this.moveDown();
+                }
+            });
+            dispatcher.addHandler('k', () => {
+                if (this.isActive()) {
+                    this.moveUp();
                 }
             });
         }
@@ -437,8 +462,8 @@ class ChannelItem extends Component {
             <div class="channelButtons" onclick="${evt => evt.stopPropagation()}">
                 <button class="channelButton" onclick="${this.remover}">del</button>
                 <button class="channelButton" onclick="${this.startEditing}">edit</button>
-                <button class="channelButton">↑</button>
-                <button class="channelButton">↓</button>
+                <button class="channelButton" onclick="${this.moveUp}">↑</button>
+                <button class="channelButton" onclick="${this.moveDown}">↓</button>
             </div>
             <div class="shortcutNumber">
                 ${this.getShortcutNumber(this.record)}
@@ -464,6 +489,8 @@ class ChannelList extends ListOf(ChannelItem) {
                 }
             },
             saveChannels: () => this.record.save(),
+            moveUp: chan => this.record.reorder(chan, -1),
+            moveDown: chan => this.record.reorder(chan, 1),
         });
 
         const {actives} = args[1];
