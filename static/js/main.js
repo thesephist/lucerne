@@ -138,7 +138,7 @@ class Modal extends Component {
                     <button class="solid modalClose" onclick="${this.closer}">close</button>
                 </div>
                 <div class="modalBody">
-                    ${this.children}
+                    ${typeof this.children === 'function' ? this.children(this.closer) : this.children}
                 </div>
             </div>
         </div>`;
@@ -1056,6 +1056,25 @@ class QueryBar extends Component {
                         }
                     }
                 }}"/>
+            <button class="mobile bordered sectionOpener queryBar-button"
+                onclick="${evt => {
+                    new Modal('Sections', closer => jdom`<div class="sectionSelector">
+                        <button class="bordered sectionButton" onclick="${evt => {
+                            router.go('/chans');
+                            closer();
+                        }}">channels</button>
+                        <button class="bordered sectionButton" onclick="${evt => {
+                            router.go('/');
+                            closer();
+                        }}">timeline</button>
+                        <button class="bordered sectionButton" onclick="${evt => {
+                            router.go('/stats');
+                            closer();
+                        }}">stats</button>
+                    </div>`);
+                }}">
+                sec
+            </button>
             <button class="solid queryBar-button"
                 onclick="${evt => {
                     router.gotoQuery(this.input.trim());
@@ -1126,6 +1145,7 @@ class QueryBar extends Component {
 class App extends Component {
     init(router) {
         this._loading = false;
+        this._activeSection = 'timeline';
 
         this.actives = new State({
             query: '',
@@ -1155,6 +1175,20 @@ class App extends Component {
         this.channels.addHandler(() => this.channels.save());
 
         this.bind(router, ([name]) => {
+            switch (name) {
+                case 'sidebar':
+                    this._activeSection = 'sidebar';
+                    this.render();
+                    return;
+                case 'stats':
+                    this._activeSection = 'stats';
+                    this.render();
+                    return;
+                default:
+                    this._activeSection = 'timeline';
+                // fallthrough
+            }
+
             const url = new URL(window.location.href);
             const searchParams = Object.fromEntries(url.searchParams);
             if (searchParams.q) {
@@ -1202,7 +1236,7 @@ class App extends Component {
     compose() {
         return jdom`<div class="app">
             ${this.queryBar.node}
-            <div class="sections">
+            <div class="sections show-${this._activeSection}">
                 ${this.sidebar.node}
                 ${this._loading ? jdom`<div class="bordered timeline">
                     <div class="timelineLoading" />
@@ -1223,6 +1257,8 @@ class LucerneRouter extends Router {
 }
 
 const router = new LucerneRouter({
+    sidebar: '/chans',
+    stats: '/stats',
     default: '/',
 });
 

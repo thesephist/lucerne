@@ -126,6 +126,9 @@ button.solid:hover {
     flex-shrink: 1;
     flex-grow: 1;
     width: 0;
+    box-shadow: none;
+    border-left: 0;
+    border-right: 0;
 }
 
 .queryBar-logo,
@@ -382,6 +385,7 @@ a.queryBar-logo {
     right: 100%;
     height: 100%;
     overflow-y: auto;
+    text-align: right;
 }
 
 .stats {
@@ -666,6 +670,10 @@ a.queryBar-logo {
     box-sizing: border-box;
 }
 
+.modalName {
+    font-weight: bold;
+}
+
 .modalBody {
     overflow: auto;
     flex-grow: 1;
@@ -708,12 +716,6 @@ a.queryBar-logo {
     animation: slider 1s linear infinite;
 }
 
-@media only screen and (min-width: 1301px) {
-    .sidebar {
-        text-align: right;
-    }
-}
-
 @media only screen and (max-width: 1300px) {
     .mobile {
         display: initial;
@@ -726,7 +728,7 @@ a.queryBar-logo {
         margin-top: .5em;
         width: calc(100% - 1em);
         height: calc(100vh - 1em);
-        max-width: unset;
+        max-width: 900px;
     }
     .sidebar,
     .stats {
@@ -743,6 +745,50 @@ a.queryBar-logo {
     }
     .queryBar .syntaxAction {
         padding-left: 1em;
+    }
+
+    .sidebar,
+    .timeline,
+    .stats {
+        display: none;
+    }
+
+    .sidebar,
+    .stats {
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border: 1px solid #000;
+        border-top: 0;
+        max-width: unset;
+        box-sizing: border-box;
+    }
+
+    .stats {
+        height: 100%;
+    }
+
+    .sections.show-sidebar .sidebar,
+    .sections.show-timeline .timeline,
+    .sections.show-stats .stats {
+        display: block;
+    }
+
+    .sectionOpener {
+        cursor: pointer;
+    }
+    .sectionButton {
+        padding: var(--lc-padding);
+        background: transparent;
+        cursor: pointer;
+        width: 10em;
+        display: block;
+        margin: 1em;
+    }
+    .sectionButton:hover {
+        background: #000;
+        color: var(--background);
     }
 
     .tweetImg {
