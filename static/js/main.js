@@ -201,7 +201,7 @@ class Channel extends Record {
             return fetch(`/conversation/${tid}?${params.toString()}`)
                 .then(resp => resp.json())
                 .then(data => data
-                    .filter(tw => tw.in_reply_to_status_id_str === tid)
+                    .filter(tw => tw.in_reply_to_status_id_str === tid || tw.id_str === tid)
                     .map(tweet => new Tweet(tweet)));
         } else if (conv_match != null) {
             const tid = conv_match[1];

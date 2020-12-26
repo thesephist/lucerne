@@ -10,6 +10,7 @@ log := std.log
 f := std.format
 clone := std.clone
 cat := std.cat
+append := std.append
 map := std.map
 each := std.each
 filter := std.filter
@@ -170,7 +171,7 @@ conversation := (tweetID, max, cb) => (
 						_ -> data := jsonResp.data :: {
 							() -> cb('[]')
 							[] -> cb('[]')
-							_ -> lookupTweetsByID(map(jsonResp.data, tw => tw.id), cb)
+							_ -> lookupTweetsByID(append(map(jsonResp.data, tw => tw.id), [tweetID]), cb)
 						}
 					}
 				))
