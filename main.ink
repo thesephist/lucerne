@@ -23,6 +23,7 @@ retrieve := twitter.retrieve
 search := twitter.search
 conversation := twitter.conversation
 trends := twitter.trends
+followers := twitter.followers
 
 server := (http.new)()
 MethodNotAllowed := {status: 405, body: 'method not allowed'}
@@ -57,6 +58,7 @@ addGetAPI('/timeline', (params, cb) => retrieve(params.max, cb))
 addGetAPI('/search', (params, cb) => search(params.query, params.max, cb))
 addGetAPI('/conversation/*tweetID', (params, cb) => conversation(params.tweetID, params.max, cb))
 addGetAPI('/trends', (_, cb) => trends(cb))
+addGetAPI('/followers', (_, cb) => followers(cb))
 
 ` Local data services `
 addRoute('/channels', params => (req, end) => req.method :: {

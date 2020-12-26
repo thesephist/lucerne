@@ -187,9 +187,23 @@ trends := cb => (
 	}
 
 	params := {
-		'max_results': '7'
+		'max_results': '6'
 		'exclude': 'retweets,replies'
 		'tweet.fields': 'attachments,created_at,entities,non_public_metrics,public_metrics,organic_metrics,text'
+	}
+
+	cacheResp(request, params, cb)
+)
+
+followers := cb => (
+	request := {
+		method: 'GET'
+		url: f('https://api.twitter.com/2/users/{{UserID}}/followers', credentials)
+	}
+
+	params := {
+		'max_results': '10'
+		'user.fields': 'description,entities,id,location,name,profile_image_url,public_metrics,url,username'
 	}
 
 	cacheResp(request, params, cb)

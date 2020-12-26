@@ -8,6 +8,7 @@ body {
     --font-sans: 'Inter', 'Helvetica Neue', system-ui, 'Helvetica', 'Arial', sans-serif;
     --lc-padding: .25em .6em;
     --background: #fafafa;
+    --background-transparent: rgba(250, 250, 250, 0);
     --foreground-light: #888;
     --background-light: #a9a9a9;
     --highlight: rgba(0, 0, 0, .1);
@@ -379,10 +380,17 @@ a.queryBar-logo {
 .sidebar {
     border-top: 1px solid #000;
     right: 100%;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .stats {
     left: 100%;
+    height: calc(100% + 1em);
+    top: -1em;
+    overflow-y: auto;
+    padding-top: 1em;
+    box-sizing: border-box;
 }
 
 .channelItem {
@@ -498,6 +506,7 @@ a.queryBar-logo {
     font-size: .8em;
     padding: var(--lc-padding);
     padding-bottom: 1rem;
+    box-sizing: border-box;
 }
 
 .trendMain {
@@ -531,7 +540,7 @@ a.queryBar-logo {
     left: 0;
     right: 0;
     height: calc(100% - 1em);
-    background: linear-gradient(to bottom, transparent, var(--background));
+    background: linear-gradient(to bottom, var(--background-transparent), var(--background));
 }
 
 .publicMetrics {
@@ -551,6 +560,78 @@ a.queryBar-logo {
 
 .organicMetrics .metricRow.half {
     width: 50%;
+}
+
+.UserList {
+    padding-top: .5em;
+}
+
+.UserItem {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    box-sizing: border-box;
+    padding: .3em .5em;
+}
+
+.UserItem .userItemPicture img {
+    border-radius: 50%;
+    height: 2.5em;
+    width: 2.5em;
+    display: block;
+}
+
+.UserItem .userItemNames {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 6px;
+    position: relative;
+    cursor: pointer;
+}
+
+.UserItem .userItemNames .name {
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.UserItem .userItemNames .name a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.UserItem .userItemNames .name a:hover {
+    text-decoration: underline;
+}
+
+.UserItem .userItemNames .searches {
+    font-size: .8em;
+    color: var(--foreground-light);
+    margin: 3px 0;
+}
+
+.UserItem .userItemNames .userItemFilter {
+    display: inline;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    color: inherit;
+    padding: 0;
+}
+
+.UserItem .userItemNames .userItemFilter:hover {
+    text-decoration: underline;
+}
+
+.UserItem .userItemNames .bio {
+    font-size: .8em;
+    line-height: 1.4em;
+}
+
+.UserItem .userItemStats {
+    text-align: right;
+    font-size: .8em;
+    white-space: nowrap;
 }
 
 .modalWrapper {
@@ -627,17 +708,13 @@ a.queryBar-logo {
     animation: slider 1s linear infinite;
 }
 
-@media only screen and (min-width: 833px) {
+@media only screen and (min-width: 1301px) {
     .sidebar {
         text-align: right;
     }
 }
 
-@media only screen and (max-width: 832px) {
-    html,
-    body {
-        font-size: 14px;
-    }
+@media only screen and (max-width: 1300px) {
     .mobile {
         display: initial;
     }
@@ -649,6 +726,7 @@ a.queryBar-logo {
         margin-top: .5em;
         width: calc(100% - 1em);
         height: calc(100vh - 1em);
+        max-width: unset;
     }
     .sidebar,
     .stats {
@@ -669,6 +747,13 @@ a.queryBar-logo {
 
     .tweetImg {
         max-height: 80px;
+    }
+}
+
+@media only screen and (max-width: 720px) {
+    html,
+    body {
+        font-size: 14px;
     }
 }
 

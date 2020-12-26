@@ -89,6 +89,7 @@ class ShortcutDispatcher {
         this.shortcuts = {};
 
         document.addEventListener('keydown', evt => {
+            if (evt.ctrlKey || evt.metaKey) return;
             if (['input', 'textarea'].includes(evt.target.tagName.toLowerCase())) {
                 return;
             }
@@ -369,6 +370,45 @@ class TweetStore extends StoreOf(Record) {
     }
 }
 
+class User extends Record {
+    webClientURL() {
+        return `https://twitter.com/${this.get('username')}`;
+    }
+    bio() {
+        const user = this.summarize();
+        const entities = (user.entities || {}).description;
+        if (!entities) return user.description;
+        const urls = entities.urls;
+        if (!urls) return user.description;
+
+        const replacements = [];
+        for (const url of urls) {
+            const {expanded_url, indices} = url;
+            replacements.push({
+                entity: jdom`<a href="${expanded_url}"
+                    target="_blank">${cleanUpURL(expanded_url)}</a>`,
+                indices,
+            });
+        }
+
+        return stitchEntities(user.description, replacements);
+    }
+}
+
+class Users extends StoreOf(User) {
+    fetch() {
+        fetch('/followers')
+            .then(resp => {
+                if (resp.status === 200) {
+                    return resp.json();
+                }
+                return null;
+            })
+            .then(json => this.reset(json.data.map(u => new User(u))))
+            .catch(err => console.error(err));
+    }
+}
+
 class ChannelItem extends Component {
     init(record, remover, {actives}, {getShortcutNumber, saveChannels, moveUp, moveDown}) {
         this._editing = false;
@@ -611,7 +651,7 @@ class Sidebar extends Component {
 function UserPopup(user) {
     function userURL(user) {
         const entities = (user.entities || {}).url;
-        if (!entities) return;
+        if (!entities) return user.url;
         const urls = entities.urls;
 
         const replacements = [];
@@ -629,8 +669,9 @@ function UserPopup(user) {
 
     function userBio(user) {
         const entities = (user.entities || {}).description;
-        if (!entities) return;
+        if (!entities) return user.description;
         const urls = entities.urls;
+        if (!urls) return user.description;
 
         const replacements = [];
         for (const url of urls) {
@@ -676,7 +717,7 @@ function UserPopup(user) {
             <button class="userPopupFilter"
                 onclick="${() => router.gotoQuery(`(from:${ME} OR @${ME}) (from:${user.screen_name} OR @${user.screen_name})`)}">
                     mutual
-                </button>
+            </button>
         </div>
         <div class="userPopupStats">
             <strong>${fmtNumber(user.friends_count)}</strong> following
@@ -897,10 +938,67 @@ class Trends extends Component {
     }
 }
 
+class UserItem extends Component {
+    init(record) {
+        this.bind(record, data => this.render(data));
+    }
+    compose(props) {
+        return jdom`<div class="UserItem">
+            <div class="userItemPicture">
+                <img class="bordered" src="${props.profile_image_url}" alt="${props.username}" />
+            </div>
+            <div class="userItemNames">
+                <div class="name">
+                    <a href="${this.record.webClientURL()}" target="_blank">
+                        ${props.name}
+                    </a>
+                </div>
+                <div class="searches">
+                    @${props.username}
+                    ·
+                    <button class="userItemFilter"
+                        onclick="${() => router.gotoQuery(`from:${props.username} -filter:replies`)}">recents</button>
+                    ·
+                    <button class="userItemFilter"
+                        onclick="${() => router.gotoQuery(`from:${props.username} -filter:replies min_faves:10`)}">top</button>
+                </div>
+                <div class="bio">
+                    ${this.record.bio()}
+                </div>
+            </div>
+            <div class="userItemStats">
+                <div class="followers">
+                    <strong>${fmtNumber(props.public_metrics.followers_count)}</strong>
+                    'ers
+                </div>
+                <div class="following">
+                    <strong>${fmtNumber(props.public_metrics.following_count)}</strong>
+                    'ing
+                </div>
+            </div>
+        </div>`;
+    }
+}
+
+class UserList extends ListOf(UserItem) {
+    compose() {
+        return jdom`<div class="UserList">
+            ${this.nodes}
+        </div>`;
+    }
+}
+
 class Fans extends Component {
+    init() {
+        this.followers = new Users();
+        this.list = new UserList(this.followers);
+
+        this.followers.fetch();
+    }
     compose() {
         return jdom`<div class="fans">
-            <div class="fansTitle">fans</div>
+            <div class="fansTitle">followers</div>
+            ${this.list.node}
         </div>`;
     }
 }
