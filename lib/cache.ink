@@ -7,8 +7,8 @@ f := std.format
 reduce := std.reduce
 
 MaxCached := 100
-CacheDelay := 60 `` seconds
-CacheDelay := 3600 `` TODO: DEBUG
+CacheDelay := 60 `` seconds. Tw API rate limits are max 15req/15min.
+CacheDelay := 300 `` 5 mins, DEBUG
 
 new := () => (
 	store := {}

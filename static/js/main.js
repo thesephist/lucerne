@@ -340,17 +340,20 @@ class Tweet extends Record {
             switch (m.type) {
                 case 'photo':
                 case 'animated_gif': {
-                    return jdom`<img load="lazy"
-                        class="bordered tweetImg"
-                        onclick="${() => openModal(m.media_url_https)}"
-                        src="${m.media_url_https}" />`;
+                    return jdom`<div class="tweetImgBox">
+                        <img load="lazy"
+                            class="bordered tweetImg"
+                            onclick="${() => openModal(m.media_url_https)}"
+                            src="${m.media_url_https}" />
+                        </div>`;
                 }
                 case 'video': {
-                    // TODO: mark as video
-                    return jdom`<img load="lazy"
-                        class="bordered tweetImg"
-                        onclick="${() => openModal(m.media_url_https)}"
-                        src="${m.media_url_https}" />`;
+                    return jdom`<div class="tweetVideoBox">
+                        <img load="lazy"
+                            class="bordered tweetImg"
+                            onclick="${() => openModal(m.media_url_https)}"
+                            src="${m.media_url_https}" />
+                    </div>`;
                 }
                 default:
                     console.error(`Unrecognized media type: ${m.type}`);

@@ -338,11 +338,33 @@ a.queryBar-logo {
     overflow-x: auto;
 }
 
+.tweetImgBox,
+.tweetVideoBox {
+    margin: .25em .5em .25em 0;
+}
+
+.tweetVideoBox {
+    position: relative;
+}
+
+.tweetVideoBox::after {
+    content: 'video';
+    display: block;
+    position: absolute;
+    right: 8px;
+    bottom: 4px;
+    text-shadow: 0 1px 5px #000;
+    pointer-events: none;
+    font-size: .8em;
+    line-height: 1em;
+    color: #fff;
+}
+
 .tweetImg {
     max-height: 120px;
     max-width: 300px;
-    margin: .25em .5em .25em 0;
     cursor: pointer;
+    display: block;
 }
 
 .tweetImg:hover {
