@@ -394,6 +394,21 @@ a.queryBar-logo {
     text-align: right;
 }
 
+.sidebar .selfMetrics {
+    padding: var(--lc-padding);
+    border-top: 1px solid #000;
+    margin-top: 1em;
+}
+
+.sidebar .selfMetrics a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sidebar .selfMetrics a:hover {
+    text-decoration: underline;
+}
+
 .stats {
     left: 100%;
     height: calc(100% + 1em + 1px);

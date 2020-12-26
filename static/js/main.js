@@ -639,11 +639,37 @@ class MetricTweets extends StoreOf(MetricTweet) {
 
 class Sidebar extends Component {
     init(channels, props) {
+        this._selfMetrics = {
+            followers_count: 0,
+            following_count: 0,
+        };
         this.channelList = new ChannelList(channels, props);
+
+        fetch('/self')
+            .then(resp => {
+                if (resp.status !== 200) {
+                    return;
+                }
+                return resp.json();
+            })
+            .then(json => {
+                this._selfMetrics = json.data.public_metrics;
+                this.render();
+            })
+            .catch(err => {
+                console.error(`Could not load account metrics: ${err}`);
+            });
     }
     compose() {
         return jdom`<div class="sidebar">
             ${this.channelList.node}
+            <div class="selfMetrics">
+                <a href="https://twitter.com/${ME}" target="_blank">@${ME}</a>
+                ·
+                <strong>${fmtNumber(this._selfMetrics.followers_count)}</strong> 'ers
+                ·
+                <strong>${fmtNumber(this._selfMetrics.following_count)}</strong> 'ing
+            </div>
         </div>`;
     }
 }
@@ -914,8 +940,6 @@ class TweetTrend extends Component {
 }
 
 class TweetTrendList extends ListOf(TweetTrend) {
-    // TODO: paginate to show up to 20 recent
-    // TODO: sort list by some engagement metrics, descending?
     compose() {
         return jdom`<div class="tweetTrendList">
             ${this.nodes}

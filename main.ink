@@ -23,6 +23,7 @@ retrieve := twitter.retrieve
 search := twitter.search
 conversation := twitter.conversation
 trends := twitter.trends
+self := twitter.self
 followers := twitter.followers
 
 server := (http.new)()
@@ -58,6 +59,7 @@ addGetAPI('/timeline', (params, cb) => retrieve(params.max, cb))
 addGetAPI('/search', (params, cb) => search(params.query, params.max, cb))
 addGetAPI('/conversation/*tweetID', (params, cb) => conversation(params.tweetID, params.max, cb))
 addGetAPI('/trends', (_, cb) => trends(cb))
+addGetAPI('/self', (_, cb) => self(cb))
 addGetAPI('/followers', (_, cb) => followers(cb))
 
 ` Local data services `

@@ -195,6 +195,18 @@ trends := cb => (
 	cacheResp(request, params, cb)
 )
 
+self := cb => (
+	request := {
+		method: 'GET'
+		url: f('https://api.twitter.com/2/users/{{UserID}}', credentials)
+	}
+
+	params := {
+		'user.fields': 'public_metrics'
+	}
+	cacheResp(request, params, cb)
+)
+
 followers := cb => (
 	request := {
 		method: 'GET'
