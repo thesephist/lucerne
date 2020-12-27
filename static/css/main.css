@@ -677,6 +677,10 @@ a.queryBar-logo {
     line-height: 1.4em;
 }
 
+.UserItem .userItemNames .bio a {
+    color: inherit;
+}
+
 .UserItem .userItemStats {
     text-align: right;
     font-size: .8em;

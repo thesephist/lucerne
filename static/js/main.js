@@ -386,11 +386,11 @@ class User extends Record {
 
         const replacements = [];
         for (const url of urls) {
-            const {expanded_url, indices} = url;
+            const {expanded_url, start, end} = url;
             replacements.push({
                 entity: jdom`<a href="${expanded_url}"
                     target="_blank">${cleanUpURL(expanded_url)}</a>`,
-                indices,
+                indices: [start, end],
             });
         }
 
