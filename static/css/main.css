@@ -373,6 +373,8 @@ a.queryBar-logo {
 
 .tweetImgPreview {
     display: block;
+    max-width: calc(100vw - 2em);
+    max-height: calc(100vh - 2em);
 }
 
 .tweetStats {
