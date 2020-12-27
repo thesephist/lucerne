@@ -66,3 +66,8 @@ Lucerne uses GNU Make for development scripts.
 
 - `make` or `make run` starts an auto-restarting development server that restarts when any relevant files are changed.
 - `make fmt` or `make f` auto-formats all Ink files with [inkfmt](https://github.com/thesephist/inkfmt). You need to have inkfmt installed on the system for this to work.
+
+### Deploy
+
+Lucerne runs on the hard-coded port 7238 when you run `ink main.ink` in the root directory of the project. To do this in deployment, I define Lucerne as a systemd service with `[lucerne.service](lucerne.service)` and let systemd manage the server. If you want to try this yourself, make sure you have a valid `credentials.ink` from above and you're invoking ink from the correct working directory.
+
