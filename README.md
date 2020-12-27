@@ -20,14 +20,15 @@ It goes without saying, because the product is designed to _help me get the most
 
 ### Search
 
-Lucerne allows you tu search twitter with a `pattern:filter` style syntax. Most of this borrows from Twitter's v1.1 search API queries, execpt a few that are custom and pre-processed on the backend, like `re:tweet_id` for replies to a tweet or `sort:top` to sort by top rather than recency.
+Lucerne allows you tu search twitter with a `pattern:filter` style syntax. Most of this borrows from Twitter's v1.1 search API queries, except a few that are custom and pre-processed on the backend, like `re:tweet_id` for replies to a tweet or `sort:top` to sort by top rather than recency.
 
 ![Searching in Lucerne](assets/lucerne-querybar.jpg)
 
 I like a textual syntax for advanced searches over a bunch of toggles in the UI, since text queries can be copy-pasted, easily saved for later, and edited quickly on the keyboard. Using this particular syntax confers two advantages:
 
 1. The syntax is also mostly usable on Twitter's web client search page, which is nice when I'm using that instead of Lucerne.
-2. It keeps the implementation simple, since I mostly pass the query (mostly) transparently through to Twitter's API endpoint.
+2. It keeps the implementation simple, since I pass the query (mostly) transparently through to Twitter's API endpoint.
+
 ### Account and Tweet metrics
 
 I usually share updates to projects I'm working on or my blog posts daily on Twitter, and like to keep track of how those tweets are doing with engagement. This use case gets a panel on the right side.
@@ -36,17 +37,30 @@ My own stats -- follower and following counts -- are there because I like keepin
 
 ### Recent followers
 
-Below the engagement metrics panel, there's a list of new followers in reverse-chronological order, so I can see if there's anyone interested who recently found me on the platform. I can see if anyone has a big presence on Twitter and one-click switch to viewing their recent or top tweets.
+Below the engagement metrics panel, there's a list of new followers in reverse-chronological order, so I can see if there's anyone interesting who recently found me on the platform. I can see if anyone has a big presence on Twitter and one-click switch to viewing their recent or popular tweets.
 
 ## How it works
 
-Lucerne's backend is written purely in [Ink](https://dotink.co). Lucerne reuses server and routing libraries from other Ink projects, but implements custom implementations of the SHA1 HMAC algorithm and OAuth 1.1 signature algorithm, both available in `lib/`. These are used to commmunicate with Twitter's API without relying on a third-party implementation.
+Lucerne's backend is written purely in [Ink](https://dotink.co). Lucerne reuses server and routing libraries from other Ink projects, but implements custom implementations of the SHA1 HMAC algorithm and OAuth 1.1 signature algorithm, both available in `lib/`. These are used to communicate with Twitter's API without relying on a third-party implementation.
 
-_(Is rolloing your own crypto like this smart? Probably not.)_
+_(Is rolling your own crypto like this smart? Probably not. But this is a toy project, and I'm the only one who uses it.)_
 
-The frontend is written as a single page [Torus](https://github.com/thesephist/torus) application, with no other dependencies. This keeps the page fast and responsive.
+The frontend is written as a single page [Torus](https://github.com/thesephist/torus) application, with no other dependencies. This keeps the page fast and responsive, even on slower connections and devices.
 
 ### Development
+
+At the moment, Lucerne is designed as a single-user application: a single server can only serve _one logged-in Twitter account_. To run your own Lucerne server, create a `credentials.ink` file in the root of the repository, with the following keys. You should be able to find these credentials when you [register a Twitter developer account](https://developer.twitter.com/).
+
+```
+UserID := '<Your Twitter account's user ID, which should be a number>'
+ConsumerKey := '<Your developer account's consumer public key>'
+ConsumerSecret := '<Your developer account's consumer secret key>'
+BearerToken := '<Your developer account's Bearer Token>'
+OAuthToken := '<Your account's OAuth token>'
+OAuthSecret := '<Your account's OAuth secret>'
+```
+
+With the file present, run `ink main.ink` to start the server, running on `localhost:7238/`. (To do this, you need to have [Ink installed](https://dotink.co/docs/overview/#setup-and-installation).)
 
 Lucerne uses GNU Make for development scripts.
 
