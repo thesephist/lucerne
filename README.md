@@ -69,5 +69,5 @@ Lucerne uses GNU Make for development scripts.
 
 ### Deploy
 
-Lucerne runs on the hard-coded port 7238 when you run `ink main.ink` in the root directory of the project. To do this in deployment, I define Lucerne as a systemd service with `[lucerne.service](lucerne.service)` and let systemd manage the server. If you want to try this yourself, make sure you have a valid `credentials.ink` from above and you're invoking ink from the correct working directory.
+Lucerne runs on the hard-coded port 7238 when you run `ink main.ink` in the root directory of the project. To do this in deployment, I define Lucerne as a systemd service with [`lucerne.service`](lucerne.service) and let systemd manage the server. If you want to try deploying Lucerne yourself, make sure you have a valid `credentials.ink` from above and you're invoking ink from the correct working directory.
 
