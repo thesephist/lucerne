@@ -93,7 +93,7 @@ addRoute('/', params => serveStatic('index.html'))
 
 start := () => (
 	end := (server.start)(7238)
-	log(f('Lucerne started, listening on 0.0.0.0:{{0}}', [7283]))
+	log(f('Lucerne started, listening on 0.0.0.0:{{0}}', [7238]))
 )
 
 ` if database directory not created, create one `
