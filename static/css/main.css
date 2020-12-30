@@ -637,6 +637,7 @@ a.queryBar-logo {
     margin: 0 6px;
     position: relative;
     cursor: pointer;
+    word-break: break-word;
 }
 
 .UserItem .userItemNames .name {
