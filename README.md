@@ -62,6 +62,25 @@ OAuthSecret := '<Your account's OAuth secret>'
 
 With the file present, run `ink main.ink` to start the server, running on `localhost:7238/`. (To do this, you need to have [Ink installed](https://dotink.co/docs/overview/#setup-and-installation).)
 
+#### Running with Docker
+
+Alternatively, if you don't already have Ink installed, you can run Lucerne from a Docker container. You will need to supply your twitter credentials (as above) but as environment variables, like so
+`.env`:
+```
+USER_ID=11223344
+USER_NAME=your_twitter_username
+CONSUMER_KEY=...
+CONSUMER_SECRET=...
+BEARER_TOKEN=...
+OAUTH_TOKEN=...
+OAUTH_SECRET=...
+```
+Then from the root of the repo you can build and run the container using these commands:
+```
+docker build . -t lucerne
+docker run -it --env-file .env -p 7238:7238 lucerne
+```
+
 Lucerne uses GNU Make for development scripts.
 
 - `make` or `make run` starts an auto-restarting development server that restarts when any relevant files are changed.
