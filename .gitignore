@@ -1,3 +1,4 @@
+.env
 credentials.ink
 *.json
 db/
