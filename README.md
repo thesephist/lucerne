@@ -29,6 +29,8 @@ I like a textual syntax for advanced searches over a bunch of toggles in the UI,
 1. The syntax is also mostly usable on Twitter's web client search page, which is nice when I'm using that instead of Lucerne.
 2. It keeps the implementation simple, since I pass the query (mostly) transparently through to Twitter's API endpoint.
 
+If using Twitter's basic search API (i.e. on non-Premium, non-Enterprise developer accounts), note that their Search API is limited to the last 7 days or so. You can probably increase this limit by upgrading your developer account, but I haven't done so personally.
+
 ### Account and Tweet metrics
 
 I usually share updates to projects I'm working on or my blog posts daily on Twitter, and like to keep track of how those tweets are doing with engagement. This use case gets a panel on the right side.
@@ -59,6 +61,8 @@ BearerToken := '<Your developer account's Bearer Token>'
 OAuthToken := '<Your account's OAuth token>'
 OAuthSecret := '<Your account's OAuth secret>'
 ```
+
+You'll also need to modify `static/js/main.js` to replace `const ME = 'thesephist';` with your own Twitter username.
 
 With the file present, run `ink main.ink` to start the server, running on `localhost:7238/`. (To do this, you need to have [Ink installed](https://dotink.co/docs/overview/#setup-and-installation).)
 
