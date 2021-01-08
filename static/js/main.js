@@ -121,24 +121,37 @@ class Modal extends Component {
         this.title = title;
         this.children = children;
 
-        this.closer = () => document.body.removeChild(this.node);
+        this.remove = this.remove.bind(this);
+
+        this.handleEscape = evt => {
+            if (evt.key !== 'Escape') return;
+
+            this.remove();
+        }
+        document.body.addEventListener('keydown', this.handleEscape);
 
         this.render(); // defines this.node
         document.body.appendChild(this.node);
     }
+    remove() {
+        document.body.removeChild(this.node);
+        document.body.removeEventListener('keydown', this.handleEscape);
+
+        super.remove();
+    }
     compose() {
         return jdom`<div class="modalWrapper" onclick="${evt => {
             if (evt.target === this.node) {
-                this.closer();
+                this.remove();
             }
         }}">
             <div class="bordered modal">
                 <div class="solid modalTitle">
                     <div class="modalName">${this.title}</div>
-                    <button class="solid modalClose" onclick="${this.closer}">close</button>
+                    <button class="solid modalClose" onclick="${this.remove}">close</button>
                 </div>
                 <div class="modalBody">
-                    ${typeof this.children === 'function' ? this.children(this.closer) : this.children}
+                    ${typeof this.children === 'function' ? this.children(this.remove) : this.children}
                 </div>
             </div>
         </div>`;
