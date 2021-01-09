@@ -539,7 +539,9 @@ class ChannelList extends ListOf(ChannelItem) {
                 const index = this.record.summarize().indexOf(chan);
                 const number = index + 1;
                 if (number <= 10) {
-                    return number.toString();
+                    return (number % 10).toString();
+                } else if (number <= 20) {
+                    return String.fromCodePoint(number + 86 - 32);
                 } else {
                     return '';
                 }
@@ -566,6 +568,14 @@ class ChannelList extends ListOf(ChannelItem) {
 
         dispatcher.addHandler(['1', '2', '3', '4', '5', '6', '7', '8', '9'], evt => {
             const selected = this.record.summarize()[+evt.key - 1]; // 1-index
+            if (selected) {
+                router.gotoChannel(selected);
+            }
+        });
+        // we can't use j, k here because they're for moving channels in list
+        dispatcher.addHandler(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'm'], evt => {
+            const selected = this.record.summarize()[evt.key.codePointAt(0) - 87]; // starts at a => 11
+            console.log(evt.key.codePointAt(0) - 86);
             if (selected) {
                 router.gotoChannel(selected);
             }
