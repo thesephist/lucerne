@@ -265,6 +265,14 @@ a.queryBar-logo {
     transform: translateY(4px);
 }
 
+.tweetItem:nth-child(1) .UserPopup,
+.tweetItem:nth-child(2) .UserPopup,
+.tweetItem:nth-child(3) .UserPopup {
+    bottom: unset;
+    top: 100%;
+    z-index: 10;
+}
+
 .tweetUserMention:hover .UserPopup {
     pointer-events: all;
     opacity: 1;
