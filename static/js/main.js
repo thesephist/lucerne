@@ -354,7 +354,7 @@ class Tweet extends Record {
                 case 'photo':
                 case 'animated_gif': {
                     return jdom`<div class="tweetImgBox">
-                        <img load="lazy"
+                        <img loading="lazy"
                             class="bordered tweetImg"
                             onclick="${() => openModal(m.media_url_https)}"
                             src="${m.media_url_https}" />
@@ -362,7 +362,7 @@ class Tweet extends Record {
                 }
                 case 'video': {
                     return jdom`<div class="tweetVideoBox">
-                        <img load="lazy"
+                        <img loading="lazy"
                             class="bordered tweetImg"
                             onclick="${() => openModal(m.media_url_https)}"
                             src="${m.media_url_https}" />
