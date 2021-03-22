@@ -426,11 +426,24 @@ class Users extends StoreOf(User) {
 }
 
 class ChannelItem extends Component {
-    init(record, remover, {actives}, {getShortcutNumber, saveChannels, moveUp, moveDown}) {
+    init(record, remover, {actives}, {
+        getShortcutNumber,
+        saveChannels,
+        moveUp,
+        moveDown,
+        renumberList,
+    }) {
         this._editing = false;
         this._input = null;
 
-        this.remover = remover;
+        this.remover = () => {
+            remover();
+            // When a channel is removed from the channel list, the shortcut
+            // numberings on the channel items under it will be incorrect.
+            // renumberList forces re-rendering of those channel items so they
+            // are correct again.
+            renumberList();
+        };
         this.getShortcutNumber = getShortcutNumber;
         this.saveChannels = saveChannels;
         this.moveUp = () => moveUp(this.record);
@@ -533,6 +546,8 @@ class ChannelItem extends Component {
 
 class ChannelList extends ListOf(ChannelItem) {
     init(...args) {
+        const {actives} = args[1];
+
         this.query = '';
         super.init(...args, {
             getShortcutNumber: chan => {
@@ -549,9 +564,13 @@ class ChannelList extends ListOf(ChannelItem) {
             saveChannels: () => this.record.save(),
             moveUp: chan => this.record.reorder(chan, -1),
             moveDown: chan => this.record.reorder(chan, 1),
+            renumberList: () => {
+                for (const c of this) {
+                    c.render();
+                }
+            },
         });
 
-        const {actives} = args[1];
         actives.addHandler(() => {
             this.query = actives.get('query');
             this.render();
@@ -573,7 +592,7 @@ class ChannelList extends ListOf(ChannelItem) {
             }
         });
         // we can't use j, k here because they're for moving channels in list
-        dispatcher.addHandler(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'm'], evt => {
+        dispatcher.addHandler(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm', 'n', 'o', 'p', 'q'], evt => {
             const selected = this.record.summarize()[evt.key.codePointAt(0) - 87]; // starts at a => 11
             console.log(evt.key.codePointAt(0) - 86);
             if (selected) {
@@ -594,12 +613,8 @@ class ChannelList extends ListOf(ChannelItem) {
         return jdom`<div class="channelList">
             ${this.nodes}
             ${this.query ? jdom`<div class="pseudoChannel channelItem" onclick="${this.createFromQuery}">
-                <div class="shortcutNumber">
-                    +
-                </div>
-                <div class="channelName">
-                    ${this.query}
-                </div>
+                <div class="shortcutNumber">+</div>
+                <div class="channelName">${this.query}</div>
             </div>` : null}
         </div>`;
     }
