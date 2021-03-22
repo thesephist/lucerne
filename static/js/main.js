@@ -446,8 +446,16 @@ class ChannelItem extends Component {
         };
         this.getShortcutNumber = getShortcutNumber;
         this.saveChannels = saveChannels;
-        this.moveUp = () => moveUp(this.record);
-        this.moveDown = () => moveDown(this.record);
+        this.moveUp = () => {
+            moveUp(this.record);
+            // see remover
+            renumberList();
+        };
+        this.moveDown = () => {
+            moveDown(this.record);
+            // see remover
+            renumberList();
+        };
 
         this.isActive = () => actives.get('channel') === record;
         this.setActive = () => {
