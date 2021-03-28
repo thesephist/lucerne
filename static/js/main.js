@@ -606,11 +606,18 @@ class ChannelList extends ListOf(ChannelItem) {
 }
 
 class MetricTweet extends Record {
+    constructor(props) {
+        // V2 API returns ID as string, so no id_str necessary
+        super(props.id, props);
+    }
     date() {
         return new Date(this.get('created_at'));
     }
     relativeDate() {
         return fmtDate(this.date());
+    }
+    webClientURL() {
+        return `https://twitter.com/${ME}/status/${this.id}`;
     }
     text() {
         const replacements = [];
@@ -929,9 +936,11 @@ class TweetTrend extends Component {
         return jdom`<div class="tweetTrend">
             <div class="trendMain">
                 <div class="tweetTrendText" title="${this.record.rawText()}">
-                    <span class="date">${this.record.relativeDate()}</span>
+                    <a class="dateLink"
+                        href="${this.record.webClientURL()}"
+                        target="_blank">${this.record.relativeDate()}</a>
                     ·
-                    ${this.record.text()}
+                    <span class="tweetTrendBody">${this.record.text()}</span>
                 </div>
                 <div class="publicMetrics">
                     <div class="metricRow">

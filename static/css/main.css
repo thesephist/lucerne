@@ -200,8 +200,8 @@ a.queryBar-logo {
 }
 
 .userPopupDescription a,
-.tweetItem .tweetBody  > a,
-.tweetTrendText a {
+.tweetItem .tweetBody > a,
+.tweetTrendText .tweetTrendBody a {
     background: var(--highlight);
     padding: 0 .3em;
     color: #000;
@@ -221,12 +221,15 @@ a.queryBar-logo {
     font-size: .8em;
 }
 
-.tweetItem .tweetMeta a.dateLink {
-    color: inherit;
+.tweetItem .tweetMeta a.dateLink,
+.tweetTrend a.dateLink {
+    color: var(--foreground-light);
+    background: transparent;
     text-decoration: none;
 }
 
-.tweetItem .tweetMeta a.dateLink:hover {
+.tweetItem .tweetMeta a.dateLink:hover,
+.tweetTrend a.dateLink:hover {
     text-decoration: underline;
 }
 
@@ -583,10 +586,6 @@ a.queryBar-logo {
     flex-grow: 1;
     flex-shrink: 1;
     width: 0;
-}
-
-.tweetTrendText .date {
-    color: var(--foreground-light);
 }
 
 .tweetTrendText::after {
