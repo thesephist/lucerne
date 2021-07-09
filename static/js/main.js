@@ -8,6 +8,12 @@ const {
 
 const ME = 'thesephist';
 const HOME_QUERY = 'home_timeline';
+const CHANNEL_SHORTCUTS = [
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
+    // we can't use j, k here because they're for moving channels in list
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm', 'n',
+    'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+];
 
 function fmtPercent(n) {
     return Math.round(n * 100 * 100) / 100 + '%';
@@ -560,14 +566,10 @@ class ChannelList extends ListOf(ChannelItem) {
         super.init(...args, {
             getShortcutNumber: chan => {
                 const index = this.record.summarize().indexOf(chan);
-                const number = index + 1;
-                if (number <= 10) {
-                    return (number % 10).toString();
-                } else if (number <= 20) {
-                    return String.fromCodePoint(number + 86 - 32);
-                } else {
-                    return '';
+                if (CHANNEL_SHORTCUTS[index] != null) {
+                    return CHANNEL_SHORTCUTS[index].toUpperCase();
                 }
+                return null;
             },
             saveChannels: () => this.record.save(),
             moveUp: chan => this.record.reorder(chan, -1),
@@ -593,26 +595,13 @@ class ChannelList extends ListOf(ChannelItem) {
             router.gotoChannel(chan);
         }
 
-        dispatcher.addHandler(['1', '2', '3', '4', '5', '6', '7', '8', '9'], evt => {
-            const selected = this.record.summarize()[+evt.key - 1]; // 1-index
+        dispatcher.addHandler(CHANNEL_SHORTCUTS, evt => {
+            const selected = this.record.summarize()[CHANNEL_SHORTCUTS.indexOf(evt.key)];
             if (selected) {
                 router.gotoChannel(selected);
             }
         });
-        // we can't use j, k here because they're for moving channels in list
-        dispatcher.addHandler(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'l', 'm', 'n', 'o', 'p', 'q'], evt => {
-            const selected = this.record.summarize()[evt.key.codePointAt(0) - 87]; // starts at a => 11
-            console.log(evt.key.codePointAt(0) - 86);
-            if (selected) {
-                router.gotoChannel(selected);
-            }
-        });
-        dispatcher.addHandler('0', evt => {
-            const selected = this.record.summarize()[10 - 1];
-            if (selected) {
-                router.gotoChannel(selected);
-            }
-        });
+
         dispatcher.addHandler(['+', '='], evt => {
             this.createFromQuery();
         });
